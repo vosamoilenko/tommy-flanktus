@@ -220,6 +220,16 @@ powershell -ExecutionPolicy Bypass -File scripts\dump_log.ps1 COM3
 
 Find your port in Device Manager → Ports (COM & LPT).
 
+### Quick Serial Read (Mac/Linux, one-liner)
+
+Auto-detects the Uno port, configures serial at 9600 baud, and streams output to both console and `logs/sensor_log.txt`:
+
+```bash
+PORT=$(arduino-cli board list | grep arduino:avr:uno | awk '{print $1}') && stty -f "$PORT" 9600 cs8 -cstopb -parenb && sleep 2 && cat "$PORT" | tee logs/sensor_log.txt
+```
+
+Press `Ctrl+C` to stop.
+
 ### Exporting EEPROM Data (Mac/Linux, no script)
 
 ```bash
@@ -361,6 +371,7 @@ Replace `/dev/ttyACM0` with your port (`COM3` on Windows). Find it with `arduino
 | Find port | `arduino-cli board list` |
 | Compile + upload | `./scripts/upload.sh` or `scripts\upload.bat` |
 | Stream logs | `./scripts/read_logs.sh` or `scripts\read_logs.bat` |
+| Quick serial read | `PORT=$(arduino-cli board list \| grep arduino:avr:uno \| awk '{print $1}') && stty -f "$PORT" 9600 cs8 -cstopb -parenb && sleep 2 && cat "$PORT" \| tee logs/sensor_log.txt` |
 | Clear EEPROM | `./scripts/clear_eeprom.sh` or `scripts\clear_eeprom.bat` |
 | Clean CSV | `./scripts/clean_csv.sh input.csv` or `scripts\clean_csv.bat input.csv` |
 | Export log (Windows) | Double-click `scripts/dump_log.bat` |

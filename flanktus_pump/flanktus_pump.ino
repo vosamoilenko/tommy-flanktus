@@ -107,12 +107,18 @@ void refreshAirTemp(unsigned long now) {
 }
 
 void logSensorData() {
+  float w = readWaterTemp();
+  float a = readAirTemp();
+
+  // Skip logging if both sensors are disconnected
+  if (w < -99.0 && a < -99.0) return;
+
   uint16_t count = getEntryCount();
   int idx = ringIndex(count);
 
   uint16_t mins = (uint16_t)(millis() / 60000UL);
-  int16_t wt = (int16_t)(readWaterTemp() * 10);
-  int16_t at = (int16_t)(readAirTemp() * 10);
+  int16_t wt = (int16_t)(w * 10);
+  int16_t at = (int16_t)(a * 10);
 
   int addr = entryAddress(idx);
   EEPROM.put(addr, mins);
@@ -171,6 +177,7 @@ void printStatus() {
 
 void setup() {
   Serial.begin(9600);
+  digitalWrite(RELAY_PIN, HIGH);   // deactivate relay BEFORE setting as output (active-LOW)
   pinMode(RELAY_PIN, OUTPUT);
   pinMode(LED_BUILTIN, OUTPUT);
   pinMode(BTN_TOGGLE, INPUT_PULLUP);
@@ -273,7 +280,10 @@ void loop() {
   if (Serial.available()) {
     char cmd = Serial.read();
     if (cmd == 'd' || cmd == 'D') dumpLog();
-    else if (cmd == 'c' || cmd == 'C') { setEntryCount(0); Serial.println(F("Log cleared.")); }
+    else if (cmd == 'c' || cmd == 'C') {
+      for (int i = 0; i < (int)EEPROM.length(); i++) EEPROM.update(i, 0);
+      Serial.println(F("EEPROM wiped."));
+    }
     else if (cmd == 's' || cmd == 'S') printStatus();
   }
 }

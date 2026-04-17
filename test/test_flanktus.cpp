@@ -41,39 +41,34 @@ TEST(test_on_time_above_30) {
   assert(getOnTime(40.0f) == MIN_MS(2));
 }
 
-TEST(test_off_time_very_cold) {
-  // <= 10 → 20 min OFF
-  assert(getOffTime(5.0f)  == MIN_MS(20));
-  assert(getOffTime(0.0f)  == MIN_MS(20));
-  assert(getOffTime(-5.0f) == MIN_MS(20));
-  assert(getOffTime(10.0f) == MIN_MS(20));
+TEST(test_off_time_cold) {
+  // <= 10 → pump off (shouldPumpRun=false), but getOffTime returns default
+  assert(getOffTime(5.0f)  == MIN_MS(10));
+  assert(getOffTime(0.0f)  == MIN_MS(10));
+  assert(getOffTime(-5.0f) == MIN_MS(10));
+  assert(getOffTime(10.0f) == MIN_MS(10));
 }
 
-TEST(test_off_time_cool) {
-  // 10 < t <= 18 → 10 min OFF
+TEST(test_off_time_default) {
+  // 10 < t <= 25 → 10 min OFF
   assert(getOffTime(10.1f) == MIN_MS(10));
   assert(getOffTime(15.0f) == MIN_MS(10));
   assert(getOffTime(18.0f) == MIN_MS(10));
-}
-
-TEST(test_off_time_warm) {
-  // 18 < t <= 25 → 10 min OFF
-  assert(getOffTime(18.1f) == MIN_MS(10));
   assert(getOffTime(22.0f) == MIN_MS(10));
   assert(getOffTime(25.0f) == MIN_MS(10));
 }
 
-TEST(test_off_time_hot) {
-  // 25 < t <= 30 → 6 min OFF
-  assert(getOffTime(25.1f) == MIN_MS(6));
-  assert(getOffTime(28.0f) == MIN_MS(6));
-  assert(getOffTime(30.0f) == MIN_MS(6));
+TEST(test_off_time_warm) {
+  // 25 < t <= 30 → 5 min OFF
+  assert(getOffTime(25.1f) == MIN_MS(5));
+  assert(getOffTime(28.0f) == MIN_MS(5));
+  assert(getOffTime(30.0f) == MIN_MS(5));
 }
 
-TEST(test_off_time_very_hot) {
-  // > 30 → 3 min OFF
-  assert(getOffTime(30.1f) == MIN_MS(3));
-  assert(getOffTime(35.0f) == MIN_MS(3));
+TEST(test_off_time_hot) {
+  // > 30 → 2 min OFF
+  assert(getOffTime(30.1f) == MIN_MS(2));
+  assert(getOffTime(35.0f) == MIN_MS(2));
 }
 
 // ═══════════════════════════════════════════
@@ -81,24 +76,20 @@ TEST(test_off_time_very_hot) {
 // ═══════════════════════════════════════════
 
 TEST(test_boundary_at_exactly_30) {
-  // 30.0 is NOT > 30, so ON=1min, OFF=6min
+  // 30.0 is NOT > 30, so ON=1min, OFF=5min (warm tier)
   assert(getOnTime(30.0f)  == MIN_MS(1));
-  assert(getOffTime(30.0f) == MIN_MS(6));
+  assert(getOffTime(30.0f) == MIN_MS(5));
 }
 
 TEST(test_boundary_at_exactly_25) {
-  // 25.0 is NOT > 25, so OFF=10min
+  // 25.0 is NOT > 25, so OFF=10min (default tier)
   assert(getOffTime(25.0f) == MIN_MS(10));
 }
 
-TEST(test_boundary_at_exactly_18) {
-  // 18.0 is NOT > 18, so OFF=10min
-  assert(getOffTime(18.0f) == MIN_MS(10));
-}
-
 TEST(test_boundary_at_exactly_10) {
-  // 10.0 is NOT > 10, so OFF=20min
-  assert(getOffTime(10.0f) == MIN_MS(20));
+  // 10.0 is NOT > 10, so shouldPumpRun=false; OFF falls to default
+  assert(getOffTime(10.0f) == MIN_MS(10));
+  assert(shouldPumpRun(10.0f) == false);
 }
 
 // ═══════════════════════════════════════════
@@ -163,19 +154,21 @@ TEST(test_pump_off_should_toggle_at_threshold) {
 }
 
 TEST(test_pump_hot_cycle) {
-  // At 35C: ON=2min, OFF=3min
+  // At 35C: ON=2min, OFF=2min
   assert(shouldTogglePump(true, 35.0f, MIN_MS(2)) == true);
-  assert(shouldTogglePump(false, 35.0f, MIN_MS(3)) == true);
+  assert(shouldTogglePump(false, 35.0f, MIN_MS(2)) == true);
   // Not yet
   assert(shouldTogglePump(true, 35.0f, MIN_MS(1)) == false);
-  assert(shouldTogglePump(false, 35.0f, MIN_MS(2)) == false);
+  assert(shouldTogglePump(false, 35.0f, MIN_MS(1)) == false);
 }
 
-TEST(test_pump_cold_cycle) {
-  // At 5C: ON=1min, OFF=20min
-  assert(shouldTogglePump(true, 5.0f, MIN_MS(1)) == true);
-  assert(shouldTogglePump(false, 5.0f, MIN_MS(20)) == true);
-  assert(shouldTogglePump(false, 5.0f, MIN_MS(19)) == false);
+TEST(test_pump_should_not_run_cold) {
+  // At 5C: pump should not run
+  assert(shouldPumpRun(5.0f) == false);
+  assert(shouldPumpRun(-10.0f) == false);
+  assert(shouldPumpRun(10.0f) == false);
+  // Just above threshold: pump runs
+  assert(shouldPumpRun(10.1f) == true);
 }
 
 // ═══════════════════════════════════════════
@@ -189,16 +182,14 @@ int main() {
   printf("\nTiming profiles:\n");
   RUN(test_on_time_below_30);
   RUN(test_on_time_above_30);
-  RUN(test_off_time_very_cold);
-  RUN(test_off_time_cool);
+  RUN(test_off_time_cold);
+  RUN(test_off_time_default);
   RUN(test_off_time_warm);
   RUN(test_off_time_hot);
-  RUN(test_off_time_very_hot);
 
   printf("\nBoundary tests:\n");
   RUN(test_boundary_at_exactly_30);
   RUN(test_boundary_at_exactly_25);
-  RUN(test_boundary_at_exactly_18);
   RUN(test_boundary_at_exactly_10);
 
   printf("\nEEPROM layout:\n");
@@ -216,7 +207,7 @@ int main() {
   RUN(test_pump_off_should_not_toggle_early);
   RUN(test_pump_off_should_toggle_at_threshold);
   RUN(test_pump_hot_cycle);
-  RUN(test_pump_cold_cycle);
+  RUN(test_pump_should_not_run_cold);
 
   printf("\n====================\n");
   printf("All %d tests passed!\n", tests_passed);

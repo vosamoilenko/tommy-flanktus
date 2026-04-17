@@ -8,6 +8,9 @@ if [ -z "$PORT" ]; then
   exit 1
 fi
 
+# Kill anything holding the serial port
+lsof "$PORT" 2>/dev/null | awk 'NR>1{print $2}' | sort -u | xargs kill 2>/dev/null && sleep 2
+
 stty -f "$PORT" 9600 cs8 -cstopb -parenb
 sleep 2
 echo "c" > "$PORT"

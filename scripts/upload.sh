@@ -5,6 +5,10 @@ if [ -z "$PORT" ]; then
   exit 1
 fi
 echo "Found Arduino on $PORT"
+
+# Kill anything holding the serial port
+lsof "$PORT" 2>/dev/null | awk 'NR>1{print $2}' | sort -u | xargs kill 2>/dev/null && sleep 2
+
 SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
 PROJECT_DIR="$(dirname "$SCRIPT_DIR")"
 
