@@ -1,0 +1,9 @@
+# Compiled test binary
+test/test_flanktus
+
+# Sensor logs (local capture data)
+logs/sensor_log.txt
+logs/*.csv
+
+# macOS
+.DS_Store
