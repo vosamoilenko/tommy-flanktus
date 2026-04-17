@@ -79,7 +79,7 @@ void setEntryCount(uint16_t c) {
 
 void setPump(bool on) {
   pumpOn = on;
-  digitalWrite(RELAY_PIN, on ? HIGH : LOW);
+  digitalWrite(RELAY_PIN, on ? LOW : HIGH);  // active-LOW relay
 }
 
 void updateLED() {

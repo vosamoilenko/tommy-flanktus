@@ -1,7 +1,7 @@
 # Flanktus v5.0 - Auto-Cycling Hydroponic Pump Controller
 
 Arduino-based pump controller with temperature-adaptive ON/OFF cycling for a rooftop aeroponic tower.
-Two waterproof DS18B20 sensors measure water and air temperature. The pump automatically adjusts its spray timing based on air temperature. Logs data to EEPROM every 30 minutes, dump as CSV over USB Serial.
+Two waterproof DS18B20 sensors measure water and air temperature. The pump automatically adjusts its spray timing based on air temperature. Logs data to EEPROM every 60 minutes, dump as CSV over USB Serial.
 
 **Setup:** Rooftop, open environment, full sun exposure, Central Europe.
 
@@ -30,7 +30,7 @@ Two waterproof DS18B20 sensors measure water and air temperature. The pump autom
 
 ## Wiring
 
-Open `flanktus-wiring-guide.html` in your browser for visual diagrams (includes light/dark theme toggle).
+Open `docs/flanktus-wiring-guide.html` in your browser for visual diagrams (includes light/dark theme toggle).
 
 ### Arduino to Relay (3 wires)
 
@@ -66,6 +66,8 @@ Mount outside in open air, shaded from direct sun. The waterproof casing means i
 
 ### Button (no resistor needed)
 
+Uses internal pull-up resistor. Wire between the pin and GND.
+
 | Arduino | Button | Function |
 |---------|--------|----------|
 | D5      | → GND  | Auto mode toggle |
@@ -86,12 +88,6 @@ Mount outside in open air, shaded from direct sun. The waterproof casing means i
 
 Press the **button** to toggle auto mode ON or OFF.
 
-- **LED solid ON** = auto mode active, pump is cycling
-- **LED OFF** = auto mode disabled, pump is off
-- **3 fast blinks** = auto mode just turned ON
-- **1 long blink** = auto mode just turned OFF
-- **2 blinks** = sensor log entry written
-
 When auto mode is ON, the pump cycles automatically based on air temperature:
 
 | Air Temp | ON time | OFF time | Season |
@@ -103,6 +99,16 @@ When auto mode is ON, the pump cycles automatically based on air temperature:
 
 The air temperature is re-read every 30 seconds, so timing adjusts as the day heats up or cools down.
 
+### LED Indicators
+
+| LED Pattern | Meaning |
+|-------------|---------|
+| Solid ON | Auto mode active, pump is cycling |
+| OFF | Auto mode disabled, pump is off |
+| 3 fast blinks | Auto mode just turned ON |
+| 1 long blink | Auto mode just turned OFF |
+| 2 blinks | Sensor log entry written |
+
 ### Sensor Logging
 
 Every 60 minutes, the Arduino reads both sensors and stores a 6-byte entry in EEPROM:
@@ -113,7 +119,7 @@ Every 60 minutes, the Arduino reads both sensors and stores a 6-byte entry in EE
 | Water temp x10 | 2 | -999 to 999 (-99.9 to 99.9 C) |
 | Air temp x10 | 2 | -999 to 999 |
 
-**Capacity:** 170 entries = **~7 days** at 60-minute intervals.
+**Capacity:** 170 entries = **~7 days** at 60-minute intervals. Uses a ring buffer — oldest entries are overwritten when full.
 
 ### Serial Commands
 
@@ -137,59 +143,90 @@ The sketch prints real-time debug output every 5 seconds over USB serial (9600 b
 
 Each line shows: timestamp (min:sec since boot), both sensor readings, pump state, auto mode state, and time remaining in the current ON/OFF cycle.
 
-**Quick read with the helper script:**
+## Scripts
+
+All scripts are in the `scripts/` directory. Make them executable first:
 
 ```bash
-# Stream to console + save to sensor_log.txt (Ctrl+C to stop)
-./read_logs.sh
-
-# Capture for 60 seconds then stop automatically
-./read_logs.sh 60
+chmod +x scripts/*.sh
 ```
 
-The script auto-detects the Arduino port, prints to console, and saves everything to `sensor_log.txt`.
+### `scripts/upload.sh` / `scripts/upload.bat` — Compile and Upload
 
-**Manual read (no script):**
+Auto-detects the Arduino port, compiles the sketch, and uploads it in one step.
+
+```bash
+./scripts/upload.sh            # Mac/Linux
+```
+```powershell
+scripts\upload.bat             # Windows (double-click or run from terminal)
+```
+
+### `scripts/read_logs.sh` / `scripts/read_logs.bat` — Stream Live Debug Logs
+
+Streams real-time serial output to the console and saves to `logs/sensor_log.txt`.
+
+```bash
+./scripts/read_logs.sh         # Stream until Ctrl+C
+./scripts/read_logs.sh 60      # Capture for 60 seconds then stop
+```
+```powershell
+scripts\read_logs.bat          # Stream until Ctrl+C
+scripts\read_logs.bat 60       # Capture for 60 seconds
+scripts\read_logs.bat 60 COM3  # Specify port manually
+```
+
+### `scripts/clear_eeprom.sh` / `scripts/clear_eeprom.bat` — Clear EEPROM Log
+
+Sends the `c` command to the Arduino to wipe all logged sensor data.
+
+```bash
+./scripts/clear_eeprom.sh      # Mac/Linux
+```
+```powershell
+scripts\clear_eeprom.bat       # Windows (double-click or run from terminal)
+```
+
+### `scripts/clean_csv.sh` / `scripts/clean_csv.bat` — Remove Bad Sensor Rows
+
+Removes rows containing `-99` (disconnected sensor reads) from an exported CSV file.
+
+```bash
+./scripts/clean_csv.sh flanktus_dump.csv              # Print to stdout
+./scripts/clean_csv.sh flanktus_dump.csv cleaned.csv   # Save to file
+```
+```powershell
+scripts\clean_csv.bat flanktus_dump.csv                # Print to console
+scripts\clean_csv.bat flanktus_dump.csv cleaned.csv    # Save to file
+```
+
+### `scripts/dump_log.bat` / `scripts/dump_log.ps1` — Windows EEPROM Export
+
+For Windows users. Double-click `dump_log.bat` or run from PowerShell:
+
+```powershell
+powershell -ExecutionPolicy Bypass -File scripts\dump_log.ps1
+```
+
+- Auto-detects Arduino by USB vendor ID (Arduino, CH340, FTDI)
+- Falls back to asking the user to select a COM port
+- Saves a timestamped CSV file (e.g. `flanktus_dump_2026-04-17_1430.csv`)
+
+To specify a port manually:
+
+```powershell
+powershell -ExecutionPolicy Bypass -File scripts\dump_log.ps1 COM3
+```
+
+Find your port in Device Manager → Ports (COM & LPT).
+
+### Exporting EEPROM Data (Mac/Linux, no script)
 
 ```bash
 # Find port
 arduino-cli board list
 
-# Read serial output (Ctrl+C to stop)
-stty -f /dev/cu.usbmodem* 9600 && cat /dev/cu.usbmodem*
-
-# Or save to file
-stty -f /dev/cu.usbmodem* 9600 && cat /dev/cu.usbmodem* | tee sensor_log.txt
-```
-
-**Sensor reads -99.9 C** — sensor disconnected or missing 4.7kΩ pull-up resistor.
-
-### Exporting EEPROM Data
-
-The Arduino logs sensor data to EEPROM every 60 minutes (170 entries, ~7 days). Export it as a CSV file to analyze or share.
-
-#### Windows — double-click
-
-1. Plug Arduino into USB
-2. Double-click **`dump_log.bat`**
-3. It auto-detects the Arduino, dumps the log, and saves a timestamped CSV file (e.g. `flanktus_dump_2026-04-17_1430.csv`)
-4. Send the CSV file
-
-If auto-detect fails, run manually:
-
-```powershell
-powershell -ExecutionPolicy Bypass -File dump_log.ps1 COM3
-```
-
-Replace `COM3` with your port — find it in Device Manager → Ports (COM & LPT).
-
-#### Mac/Linux
-
-```bash
-# Stream live debug logs
-./read_logs.sh
-
-# Or dump EEPROM data manually
+# Send dump command and capture output
 stty -f /dev/cu.usbmodem* 9600 && echo 'd' > /dev/cu.usbmodem*
 cat /dev/cu.usbmodem* | tee flanktus_dump.csv
 # Wait for "--- X/170 entries ---" line, then Ctrl+C
@@ -207,15 +244,15 @@ minutes,water_c,air_c
 - `minutes` = minutes since Arduino boot
 - `water_c` / `air_c` = temperature in Celsius (one decimal)
 
-#### Serial commands (manual)
+## Testing
 
-Connect via any serial terminal at 9600 baud:
+The logic layer (`flanktus_logic.h`) has no Arduino dependencies and is tested natively with C++:
 
-| Command | Action |
-|---------|--------|
-| `d` | Dump all logged data as CSV |
-| `c` | Clear the EEPROM log |
-| `s` | Show current sensor readings + status |
+```bash
+g++ -std=c++11 -I . -o test/test_flanktus test/test_flanktus.cpp && ./test/test_flanktus
+```
+
+Tests cover all temperature thresholds, timing profiles, EEPROM layout, ring buffer wrap-around, and pump cycle decisions.
 
 ## Year-Round Pump Timing Profiles
 
@@ -247,6 +284,29 @@ Night = 22:00-06:00. Double the OFF time.
 | 26-28 C    | Warning  | Increase spray. Add frozen bottles. |
 | > 28 C     | Danger   | Root rot risk. Shade reservoir. Add ice. |
 | > 32 C     | Critical | Stop and shade everything immediately. |
+
+## Project Structure
+
+```
+tommy-flanktus/
+├── flanktus_pump/
+│   ├── flanktus_pump.ino     # Main Arduino sketch
+│   └── flanktus_logic.h      # Pure logic (testable without Arduino)
+├── test/
+│   └── test_flanktus.cpp     # Native C++ unit tests
+├── scripts/
+│   ├── upload.sh / .bat      # Compile + upload
+│   ├── read_logs.sh / .bat   # Stream live serial logs
+│   ├── clear_eeprom.sh / .bat # Clear logged sensor data
+│   ├── clean_csv.sh / .bat   # Remove bad rows from CSV
+│   ├── dump_log.bat          # Export EEPROM log (Windows, double-click)
+│   └── dump_log.ps1          # Export EEPROM log (PowerShell)
+├── docs/
+│   └── flanktus-wiring-guide.html  # Interactive wiring diagrams
+├── logs/
+│   └── sensor_log.txt        # Captured serial output
+└── README.md
+```
 
 ## Dependencies
 
@@ -282,6 +342,12 @@ arduino-cli lib install "OneWire" "DallasTemperature"
 ```bash
 git clone https://github.com/vosamoilenko/tommy-flanktus.git
 cd tommy-flanktus
+./scripts/upload.sh
+```
+
+Or manually:
+
+```bash
 arduino-cli compile --fqbn arduino:avr:uno flanktus_pump
 arduino-cli upload -p /dev/ttyACM0 --fqbn arduino:avr:uno flanktus_pump
 ```
@@ -293,16 +359,22 @@ Replace `/dev/ttyACM0` with your port (`COM3` on Windows). Find it with `arduino
 | Task | Command |
 |------|---------|
 | Find port | `arduino-cli board list` |
-| Compile | `arduino-cli compile --fqbn arduino:avr:uno flanktus_pump` |
-| Upload | `arduino-cli upload -p PORT --fqbn arduino:avr:uno flanktus_pump` |
+| Compile + upload | `./scripts/upload.sh` or `scripts\upload.bat` |
+| Stream logs | `./scripts/read_logs.sh` or `scripts\read_logs.bat` |
+| Clear EEPROM | `./scripts/clear_eeprom.sh` or `scripts\clear_eeprom.bat` |
+| Clean CSV | `./scripts/clean_csv.sh input.csv` or `scripts\clean_csv.bat input.csv` |
+| Export log (Windows) | Double-click `scripts/dump_log.bat` |
+| Run tests | `g++ -std=c++11 -I . -o test/test_flanktus test/test_flanktus.cpp && ./test/test_flanktus` |
 | Install libs | `arduino-cli lib install "OneWire" "DallasTemperature"` |
 
 ## Troubleshooting
 
-**DS18B20 reads -127 C** — The 4.7k pull-up resistor between DATA and 5V is missing.
+**DS18B20 reads -127 C or -99.9 C** — The 4.7k pull-up resistor between DATA and 5V is missing, or the sensor is disconnected.
 
-**Buttons don't respond** — Must connect pin to GND (not 5V). Try rotating 90 degrees.
+**Buttons don't respond** — Must connect pin to GND (not 5V). Try rotating 90 degrees on the breadboard.
 
 **Upload fails** — Try different USB port/cable. On Linux: `sudo usermod -a -G dialout $USER` then log out/in.
 
-**EEPROM data looks wrong** — Send `c` to clear and start fresh. Power cycling doesn't clear EEPROM.
+**EEPROM data looks wrong** — Send `c` to clear and start fresh, or run `./scripts/clear_eeprom.sh`. Power cycling doesn't clear EEPROM.
+
+**Port not detected by scripts** — Make sure `arduino-cli` is installed and the board shows up in `arduino-cli board list`.
