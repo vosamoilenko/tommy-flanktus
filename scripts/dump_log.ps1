@@ -1,4 +1,4 @@
-# dump_log.ps1 — Export FLANKTUS EEPROM log to CSV file
+# dump_log.ps1 - Export FLANKTUS EEPROM log to CSV file
 # Usage: double-click dump_log.bat
 #   or:  powershell -ExecutionPolicy Bypass -File dump_log.ps1
 #   or:  powershell -ExecutionPolicy Bypass -File dump_log.ps1 COM3
@@ -9,7 +9,7 @@
 #   2. Picks the first matching COM port.
 #   3. If nothing matches, lists all available COM ports and asks
 #      the user to type the right one.
-#   No blind probing — the port is only opened once, to dump data.
+#   No blind probing - the port is only opened once, to dump data.
 
 $ErrorActionPreference = "Stop"
 
@@ -76,7 +76,7 @@ try {
     exit 1
 }
 
-# Arduino resets when serial opens — wait for boot message
+# Arduino resets when serial opens - wait for boot message
 Write-Host "Waiting for Arduino to boot..."
 Start-Sleep -Milliseconds 3000
 $serial.DiscardInBuffer()

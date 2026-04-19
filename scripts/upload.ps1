@@ -1,4 +1,4 @@
-# upload.ps1 — Compile and upload FLANKTUS to Arduino
+# upload.ps1 - Compile and upload FLANKTUS to Arduino
 # Usage: double-click upload.bat
 #   or:  powershell -ExecutionPolicy Bypass -File upload.ps1
 #   or:  powershell -ExecutionPolicy Bypass -File upload.ps1 COM3

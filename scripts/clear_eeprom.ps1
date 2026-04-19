@@ -1,4 +1,4 @@
-# clear_eeprom.ps1 — Clear the EEPROM ring buffer
+# clear_eeprom.ps1 - Clear the EEPROM ring buffer
 # Usage: double-click clear_eeprom.bat
 #   or:  powershell -ExecutionPolicy Bypass -File clear_eeprom.ps1
 #   or:  powershell -ExecutionPolicy Bypass -File clear_eeprom.ps1 COM3

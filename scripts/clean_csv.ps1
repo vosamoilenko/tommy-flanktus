@@ -1,4 +1,4 @@
-# clean_csv.ps1 — Remove rows with -99 (disconnected sensor) from exported CSV
+# clean_csv.ps1 - Remove rows with -99 (disconnected sensor) from exported CSV
 # Usage: powershell -ExecutionPolicy Bypass -File clean_csv.ps1 input.csv [output.csv]
 #   If no output file given, prints to console.
 

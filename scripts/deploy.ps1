@@ -1,4 +1,4 @@
-# deploy.ps1 — Compile, upload, health-check, and monitor FLANKTUS
+# deploy.ps1 - Compile, upload, health-check, and monitor FLANKTUS
 # Usage: double-click deploy.bat
 #   or:  powershell -ExecutionPolicy Bypass -File deploy.ps1
 #   or:  powershell -ExecutionPolicy Bypass -File deploy.ps1 COM3
@@ -34,7 +34,7 @@ $projectDir = Split-Path -Parent $scriptDir
 $sketchDir = Join-Path $projectDir "flanktus_pump"
 $logFile = Join-Path $projectDir "logs\sensor_log.txt"
 
-# ── Compile ──
+# -- Compile --
 Write-Host ""
 Write-Host "Compiling..."
 & arduino-cli compile --fqbn arduino:avr:uno $sketchDir
@@ -44,7 +44,7 @@ if ($LASTEXITCODE -ne 0) {
     exit 1
 }
 
-# ── Upload ──
+# -- Upload --
 Write-Host ""
 Write-Host "Uploading to $comPort..."
 & arduino-cli upload -p $comPort --fqbn arduino:avr:uno $sketchDir
@@ -55,23 +55,23 @@ if ($LASTEXITCODE -ne 0) {
 }
 Write-Host "Upload OK." -ForegroundColor Green
 
-# ── Wait for Arduino reboot ──
+# -- Wait for Arduino reboot --
 Write-Host ""
 Write-Host "Waiting for Arduino to reboot..."
 Start-Sleep -Seconds 3
 
-# ── Open serial port ──
+# -- Open serial port --
 try {
     $port = New-Object System.IO.Ports.SerialPort $comPort, 9600, "None", 8, "One"
     $port.ReadTimeout = 1000
     $port.Open()
 } catch {
-    Write-Host "ERROR: Cannot open $comPort — $($_.Exception.Message)" -ForegroundColor Red
+    Write-Host "ERROR: Cannot open $comPort - $($_.Exception.Message)" -ForegroundColor Red
     Read-Host "Press Enter to exit"
     exit 1
 }
 
-# ── Health check (10 seconds) ──
+# -- Health check (10 seconds) --
 Write-Host ""
 Write-Host "Running health check (10s)..." -ForegroundColor Yellow
 Write-Host ("=" * 40)
@@ -137,7 +137,7 @@ if ($errors -gt 0) {
     Write-Host "Continuing to serial monitor anyway..."
 }
 
-# ── Stream serial output ──
+# -- Stream serial output --
 Write-Host ""
 Write-Host "Streaming serial output... (Ctrl+C to stop)" -ForegroundColor Cyan
 Write-Host "Saving to $logFile"

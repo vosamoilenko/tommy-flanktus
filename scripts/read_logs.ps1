@@ -1,4 +1,4 @@
-# read_logs.ps1 — Stream live debug logs from Arduino
+# read_logs.ps1 - Stream live debug logs from Arduino
 # Usage: double-click read_logs.bat
 #   or:  powershell -ExecutionPolicy Bypass -File read_logs.ps1
 #   or:  powershell -ExecutionPolicy Bypass -File read_logs.ps1 30
