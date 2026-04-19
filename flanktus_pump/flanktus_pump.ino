@@ -47,7 +47,7 @@ DallasTemperature waterSensor(&owWater);
 DallasTemperature airSensor(&owAir);
 
 // ── State ──
-bool autoMode = false;
+bool autoMode = true;   // start cycling immediately on boot
 bool pumpOn = false;
 unsigned long cycleStart = 0;
 unsigned long lastDebounce = 0;
@@ -183,11 +183,19 @@ void setup() {
   pinMode(BTN_TOGGLE, INPUT_PULLUP);
   waterSensor.begin();
   airSensor.begin();
-  setPump(false);
-  updateLED();
   cachedAirTemp = readAirTemp();
   if (cachedAirTemp < -99.0) cachedAirTemp = 20.0;
+
+  // Start cycling immediately on boot
+  cycleStart = millis();
+  if (shouldPumpRun(cachedAirTemp)) {
+    setPump(true);
+  } else {
+    setPump(false);
+  }
+  updateLED();
   Serial.println(F("FLANKTUS v5.0 | d=dump c=clear s=status"));
+  Serial.println(F("Auto mode ON — cycling started."));
 }
 
 void loop() {
