@@ -1,5 +1,10 @@
 # Flanktus v5.0 - Auto-Cycling Hydroponic Pump Controller
 
+![Flanktus preview](preview.png)
+
+the first run was:
+sun 19 Apr 2026 18:16
+
 Arduino-based pump controller with temperature-adaptive ON/OFF cycling for a rooftop aeroponic tower.
 Two waterproof DS18B20 sensors measure water and air temperature. The pump automatically adjusts its spray timing based on air temperature. Logs data to EEPROM every 60 minutes, dump as CSV over USB Serial.
 
