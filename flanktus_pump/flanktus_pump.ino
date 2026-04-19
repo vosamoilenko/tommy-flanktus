@@ -163,7 +163,7 @@ void printStatus() {
   Serial.print(F("Air:   ")); Serial.print(at, 1); Serial.println(F(" C"));
   if (autoMode) {
     if (!shouldPumpRun(at)) {
-      Serial.println(F("Paused: too cold (<10 C)"));
+      Serial.println(F("Paused: too cold (<=1 C)"));
     } else {
       Serial.print(F("ON t:  ")); Serial.print(getOnTime(at) / 60000UL); Serial.println(F(" min"));
       Serial.print(F("OFF t: ")); Serial.print(getOffTime(at) / 60000UL); Serial.println(F(" min"));

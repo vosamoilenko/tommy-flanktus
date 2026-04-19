@@ -86,10 +86,10 @@ TEST(test_boundary_at_exactly_25) {
   assert(getOffTime(25.0f) == MIN_MS(10));
 }
 
-TEST(test_boundary_at_exactly_10) {
-  // 10.0 is NOT > 10, so shouldPumpRun=false; OFF falls to default
-  assert(getOffTime(10.0f) == MIN_MS(10));
-  assert(shouldPumpRun(10.0f) == false);
+TEST(test_boundary_at_exactly_1) {
+  // 1.0 is NOT > 1, so shouldPumpRun=false (too cold)
+  assert(shouldPumpRun(1.0f) == false);
+  assert(shouldPumpRun(0.0f) == false);
 }
 
 // ═══════════════════════════════════════════
@@ -162,13 +162,14 @@ TEST(test_pump_hot_cycle) {
   assert(shouldTogglePump(false, 35.0f, MIN_MS(1)) == false);
 }
 
-TEST(test_pump_should_not_run_cold) {
-  // At 5C: pump should not run
-  assert(shouldPumpRun(5.0f) == false);
+TEST(test_pump_should_not_run_freezing) {
+  // Air at or below 1C: pump should not run
+  assert(shouldPumpRun(1.0f) == false);
+  assert(shouldPumpRun(0.0f) == false);
   assert(shouldPumpRun(-10.0f) == false);
-  assert(shouldPumpRun(10.0f) == false);
   // Just above threshold: pump runs
-  assert(shouldPumpRun(10.1f) == true);
+  assert(shouldPumpRun(1.1f) == true);
+  assert(shouldPumpRun(5.0f) == true);
 }
 
 // ═══════════════════════════════════════════
@@ -190,7 +191,7 @@ int main() {
   printf("\nBoundary tests:\n");
   RUN(test_boundary_at_exactly_30);
   RUN(test_boundary_at_exactly_25);
-  RUN(test_boundary_at_exactly_10);
+  RUN(test_boundary_at_exactly_1);
 
   printf("\nEEPROM layout:\n");
   RUN(test_entry_address_first);
@@ -207,7 +208,7 @@ int main() {
   RUN(test_pump_off_should_not_toggle_early);
   RUN(test_pump_off_should_toggle_at_threshold);
   RUN(test_pump_hot_cycle);
-  RUN(test_pump_should_not_run_cold);
+  RUN(test_pump_should_not_run_freezing);
 
   printf("\n====================\n");
   printf("All %d tests passed!\n", tests_passed);

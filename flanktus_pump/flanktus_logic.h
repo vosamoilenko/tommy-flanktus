@@ -16,7 +16,7 @@ const int MAX_ENTRIES  = (1024 - 2) / ENTRY_SIZE;  // 170
 //  > 30°C    │  ON_HOT      │  OFF_HOT
 //  25-30°C   │  ON_DEFAULT  │  OFF_WARM
 //  10-25°C   │  ON_DEFAULT  │  OFF_DEFAULT
-//  < 10°C    │  pump off    │  pump off
+//  ≤ 1°C     │  pump off    │  pump off
 //
 const unsigned long ON_DEFAULT  =  1UL * 60UL * 1000UL;  //  1 min
 const unsigned long ON_HOT      =  2UL * 60UL * 1000UL;  //  2 min
@@ -26,7 +26,7 @@ const unsigned long OFF_HOT     =  2UL * 60UL * 1000UL;  //  2 min
 
 const float TEMP_HOT       = 30.0f;  // °C — above this: hot profile
 const float TEMP_WARM      = 25.0f;  // °C — above this: warm profile
-const float TEMP_MIN_RUN   = 10.0f;  // °C — below this: pump stays off
+const float TEMP_MIN_RUN   =  1.0f;  // °C — air at or below this: pump stays off
 
 // Returns ON time in ms based on air temp
 inline unsigned long getOnTime(float airC) {
@@ -41,7 +41,7 @@ inline unsigned long getOffTime(float airC) {
   return OFF_DEFAULT;
 }
 
-// Returns true if pump should cycle at this temperature
+// Returns true if pump should cycle — stops if air temp ≤1°C
 inline bool shouldPumpRun(float airC) {
   return airC > TEMP_MIN_RUN;
 }
