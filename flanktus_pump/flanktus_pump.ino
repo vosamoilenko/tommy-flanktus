@@ -63,8 +63,15 @@ DallasTemperature airSensor(&owAir);
 // ── State ──
 bool autoMode = true;
 bool pumpOn = false;
+bool testMode = false;
 unsigned long cycleStart = 0;
 unsigned long lastDebounce = 0;
+
+// ── 10-tap test mode detection ──
+const int TAP_TARGET = 10;
+const unsigned long TAP_WINDOW = 3000;  // must tap 10 times within 3 seconds
+int tapCount = 0;
+unsigned long firstTapTime = 0;
 
 // ── SD card state ──
 bool sdReady = false;
@@ -168,8 +175,15 @@ void printStatus() {
     if (!shouldPumpRun(at)) {
       Serial.println(F("Paused: too cold (<=1 C)"));
     } else {
-      Serial.print(F("ON t:  ")); Serial.print(getOnTime(at) / 60000UL); Serial.println(F(" min"));
-      Serial.print(F("OFF t: ")); Serial.print(getOffTime(at) / 60000UL); Serial.println(F(" min"));
+      unsigned long onT = getOnTime(at, testMode);
+      unsigned long offT = getOffTime(at, testMode);
+      if (testMode) {
+        Serial.print(F("ON t:  ")); Serial.print(onT / 1000UL); Serial.println(F(" sec (TEST)"));
+        Serial.print(F("OFF t: ")); Serial.print(offT / 1000UL); Serial.println(F(" sec (TEST)"));
+      } else {
+        Serial.print(F("ON t:  ")); Serial.print(onT / 60000UL); Serial.println(F(" min"));
+        Serial.print(F("OFF t: ")); Serial.print(offT / 60000UL); Serial.println(F(" min"));
+      }
     }
   }
   Serial.print(F("Up:    ")); Serial.print(millis() / 60000UL); Serial.println(F(" min"));
@@ -232,7 +246,7 @@ void updateLCD(unsigned long now) {
     lcd.print(F("Too cold - waiting  "));
   } else {
     unsigned long elapsed = now - cycleStart;
-    unsigned long target = pumpOn ? getOnTime(cachedAirTemp) : getOffTime(cachedAirTemp);
+    unsigned long target = pumpOn ? getOnTime(cachedAirTemp, testMode) : getOffTime(cachedAirTemp, testMode);
     unsigned long remain = 0;
     if (elapsed < target) remain = target - elapsed;
     char timeBuf[6];
@@ -258,10 +272,11 @@ void updateLCD(unsigned long now) {
     sprintf(line, "SD:WR  Up:%luh%02lum", upHr, upM);
   } else {
     sdWriteFlash = false;
-    if (sdReady) {
-      sprintf(line, "SD:OK  Up:%luh%02lum", upHr, upM);
+    const char* sdLabel = sdReady ? "OK" : "--";
+    if (testMode) {
+      sprintf(line, "SD:%s TEST %luh%02lum", sdLabel, upHr, upM);
     } else {
-      sprintf(line, "SD:--  Up:%luh%02lum", upHr, upM);
+      sprintf(line, "SD:%s  Up:%luh%02lum", sdLabel, upHr, upM);
     }
   }
   lcd.print(line);
@@ -318,16 +333,35 @@ void loop() {
 
   refreshTemps(now);
 
-  // ── Button: toggle auto mode ──
-  if (digitalRead(BTN_TOGGLE) == LOW && (now - lastDebounce) > 500) {
+  // ── Button: toggle auto mode / 10-tap test mode ──
+  if (digitalRead(BTN_TOGGLE) == LOW && (now - lastDebounce) > 200) {
     lastDebounce = now;
-    autoMode = !autoMode;
-    if (autoMode) {
-      pumpOn = true;
-      setPump(true);
-      cycleStart = now;
+
+    // Track rapid taps
+    if (tapCount == 0 || (now - firstTapTime) > TAP_WINDOW) {
+      tapCount = 1;
+      firstTapTime = now;
     } else {
-      setPump(false);
+      tapCount++;
+    }
+
+    if (tapCount >= TAP_TARGET) {
+      // 10 taps — toggle test mode
+      testMode = !testMode;
+      tapCount = 0;
+      cycleStart = now;  // reset cycle timer
+      Serial.print(F(">>> "));
+      Serial.println(testMode ? F("TEST MODE ON") : F("TEST MODE OFF (production)"));
+    } else {
+      // Single tap — toggle auto mode
+      autoMode = !autoMode;
+      if (autoMode) {
+        pumpOn = true;
+        setPump(true);
+        cycleStart = now;
+      } else {
+        setPump(false);
+      }
     }
   }
 
@@ -337,7 +371,7 @@ void loop() {
       if (pumpOn) setPump(false);
     } else {
       unsigned long elapsed = now - cycleStart;
-      if (shouldTogglePump(pumpOn, cachedAirTemp, elapsed)) {
+      if (shouldTogglePump(pumpOn, cachedAirTemp, elapsed, testMode)) {
         setPump(!pumpOn);
         cycleStart = now;
       }
@@ -378,7 +412,7 @@ void loop() {
     Serial.print(sdReady ? F("OK") : F("NO"));
     if (autoMode && shouldPumpRun(cachedAirTemp)) {
       unsigned long elapsed = now - cycleStart;
-      unsigned long target = pumpOn ? getOnTime(cachedAirTemp) : getOffTime(cachedAirTemp);
+      unsigned long target = pumpOn ? getOnTime(cachedAirTemp, testMode) : getOffTime(cachedAirTemp, testMode);
       unsigned long remain = 0;
       if (elapsed < target) remain = (target - elapsed) / 1000UL;
       Serial.print(F(" cycle_left="));
