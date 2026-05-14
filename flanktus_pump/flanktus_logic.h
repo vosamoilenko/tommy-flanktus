@@ -7,12 +7,14 @@
  */
 
 // ── Timing profiles (edit these to tune pump cycling) ──
+//  Based on WATER temperature:
 //
-//  Air temp  │  ON          │  OFF
-//  > 30°C    │  ON_HOT      │  OFF_HOT
-//  25-30°C   │  ON_DEFAULT  │  OFF_WARM
-//  1-25°C    │  ON_DEFAULT  │  OFF_DEFAULT
-//  ≤ 1°C     │  pump off    │  pump off
+//  Water temp │  ON          │  OFF
+//  > 32°C     │  always on   │  —
+//  > 30°C     │  ON_HOT      │  OFF_HOT
+//  25-30°C    │  ON_DEFAULT  │  OFF_WARM
+//  1-25°C     │  ON_DEFAULT  │  OFF_DEFAULT
+//  ≤ 1°C      │  pump off    │  pump off
 //
 
 // ── Production timings ──
@@ -29,6 +31,7 @@ const unsigned long TEST_OFF_DEFAULT = 30UL * 1000UL;  // 30 sec
 const unsigned long TEST_OFF_WARM    = 20UL * 1000UL;  // 20 sec
 const unsigned long TEST_OFF_HOT     = 10UL * 1000UL;  // 10 sec
 
+const float TEMP_EXTREME   = 32.0f;  // °C — above this: pump always on
 const float TEMP_HOT       = 30.0f;  // °C — above this: hot profile
 const float TEMP_WARM      = 25.0f;  // °C — above this: warm profile
 const float TEMP_MIN_RUN   =  1.0f;  // °C — air at or below this: pump stays off
@@ -58,9 +61,17 @@ inline bool shouldPumpRun(float airC) {
   return airC > TEMP_MIN_RUN;
 }
 
+// Returns true if pump should stay on continuously (extreme heat)
+inline bool shouldPumpAlwaysOn(float airC) {
+  return airC > TEMP_EXTREME;
+}
+
 // ── Pump cycle decision ──
 // Returns true if the pump state should flip
 inline bool shouldTogglePump(bool pumpOn, float airC, unsigned long elapsed, bool testMode) {
+  if (shouldPumpAlwaysOn(airC)) {
+    return !pumpOn;  // if off, toggle on immediately; if on, never toggle off
+  }
   if (pumpOn) {
     return elapsed >= getOnTime(airC, testMode);
   } else {

@@ -16,11 +16,12 @@
  *   GND    → Relay GND, both DS18B20 GND, SD GND, LCD GND, Button
  *
  * Auto mode:
- *   Pump cycles ON/OFF automatically. Timing adjusts by air temp:
+ *   Pump cycles ON/OFF automatically. Timing adjusts by water temp:
  *     ≤ 1 C   → pump off (too cold)
  *     1-25 C  → 1 min ON / 10 min OFF
  *     25-30 C → 1 min ON /  5 min OFF
- *     > 30 C  → 2 min ON /  2 min OFF
+ *     30-32 C → 2 min ON /  2 min OFF
+ *     > 32 C  → pump always on
  *
  * LCD (20x4):
  *   Line 0: Water temp + Air temp
@@ -84,7 +85,7 @@ unsigned long lastTempRead = 0;
 const unsigned long TEMP_READ_INTERVAL = 5UL * 1000UL;
 
 // ── Logging ──
-const unsigned long LOG_INTERVAL = 60UL * 60UL * 1000UL;
+const unsigned long LOG_INTERVAL = 5UL * 60UL * 1000UL;  // 5 min
 unsigned long lastLogTime = 0;
 bool firstLog = true;
 unsigned long lastSDWriteTime = 0;
@@ -172,11 +173,11 @@ void printStatus() {
   Serial.print(F("Water: ")); Serial.print(wt, 1); Serial.println(F(" C"));
   Serial.print(F("Air:   ")); Serial.print(at, 1); Serial.println(F(" C"));
   if (autoMode) {
-    if (!shouldPumpRun(at)) {
+    if (!shouldPumpRun(wt)) {
       Serial.println(F("Paused: too cold (<=1 C)"));
     } else {
-      unsigned long onT = getOnTime(at, testMode);
-      unsigned long offT = getOffTime(at, testMode);
+      unsigned long onT = getOnTime(wt, testMode);
+      unsigned long offT = getOffTime(wt, testMode);
       if (testMode) {
         Serial.print(F("ON t:  ")); Serial.print(onT / 1000UL); Serial.println(F(" sec (TEST)"));
         Serial.print(F("OFF t: ")); Serial.print(offT / 1000UL); Serial.println(F(" sec (TEST)"));
@@ -230,7 +231,7 @@ void updateLCD(unsigned long now) {
   lcd.setCursor(0, 1);
   if (!autoMode) {
     lcd.print(F("PUMP:OFF  AUTO:OFF   "));
-  } else if (!shouldPumpRun(cachedAirTemp)) {
+  } else if (!shouldPumpRun(cachedWaterTemp)) {
     lcd.print(F("PUMP:OFF  COLD PAUSE "));
   } else if (pumpOn) {
     lcd.print(F("PUMP:ON   AUTO:ON    "));
@@ -242,11 +243,11 @@ void updateLCD(unsigned long now) {
   lcd.setCursor(0, 2);
   if (!autoMode) {
     lcd.print(F("Manual mode         "));
-  } else if (!shouldPumpRun(cachedAirTemp)) {
+  } else if (!shouldPumpRun(cachedWaterTemp)) {
     lcd.print(F("Too cold - waiting  "));
   } else {
     unsigned long elapsed = now - cycleStart;
-    unsigned long target = pumpOn ? getOnTime(cachedAirTemp, testMode) : getOffTime(cachedAirTemp, testMode);
+    unsigned long target = pumpOn ? getOnTime(cachedWaterTemp, testMode) : getOffTime(cachedWaterTemp, testMode);
     unsigned long remain = 0;
     if (elapsed < target) remain = target - elapsed;
     char timeBuf[6];
@@ -316,7 +317,7 @@ void setup() {
   delay(1000);
 
   cycleStart = millis();
-  if (shouldPumpRun(cachedAirTemp)) {
+  if (shouldPumpRun(cachedWaterTemp)) {
     setPump(true);
   } else {
     setPump(false);
@@ -367,11 +368,11 @@ void loop() {
 
   // ── Auto pump cycling ──
   if (autoMode) {
-    if (!shouldPumpRun(cachedAirTemp)) {
+    if (!shouldPumpRun(cachedWaterTemp)) {
       if (pumpOn) setPump(false);
     } else {
       unsigned long elapsed = now - cycleStart;
-      if (shouldTogglePump(pumpOn, cachedAirTemp, elapsed, testMode)) {
+      if (shouldTogglePump(pumpOn, cachedWaterTemp, elapsed, testMode)) {
         setPump(!pumpOn);
         cycleStart = now;
       }
@@ -410,9 +411,9 @@ void loop() {
     Serial.print(autoMode ? F("ON") : F("OFF"));
     Serial.print(F(" sd="));
     Serial.print(sdReady ? F("OK") : F("NO"));
-    if (autoMode && shouldPumpRun(cachedAirTemp)) {
+    if (autoMode && shouldPumpRun(cachedWaterTemp)) {
       unsigned long elapsed = now - cycleStart;
-      unsigned long target = pumpOn ? getOnTime(cachedAirTemp, testMode) : getOffTime(cachedAirTemp, testMode);
+      unsigned long target = pumpOn ? getOnTime(cachedWaterTemp, testMode) : getOffTime(cachedWaterTemp, testMode);
       unsigned long remain = 0;
       if (elapsed < target) remain = (target - elapsed) / 1000UL;
       Serial.print(F(" cycle_left="));

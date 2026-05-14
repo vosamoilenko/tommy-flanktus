@@ -33,6 +33,7 @@ TEST(test_on_time_below_30) {
 
 TEST(test_on_time_above_30) {
   assert(getOnTime(30.1f, false) == MIN_MS(2));
+  assert(getOnTime(32.0f, false) == MIN_MS(2));
   assert(getOnTime(35.0f, false) == MIN_MS(2));
 }
 
@@ -50,6 +51,7 @@ TEST(test_off_time_warm) {
 
 TEST(test_off_time_hot) {
   assert(getOffTime(30.1f, false) == MIN_MS(2));
+  assert(getOffTime(32.0f, false) == MIN_MS(2));
   assert(getOffTime(35.0f, false) == MIN_MS(2));
 }
 
@@ -107,10 +109,27 @@ TEST(test_pump_off_should_toggle_at_threshold) {
 }
 
 TEST(test_pump_hot_cycle) {
-  assert(shouldTogglePump(true, 35.0f, MIN_MS(2), false) == true);
-  assert(shouldTogglePump(false, 35.0f, MIN_MS(2), false) == true);
-  assert(shouldTogglePump(true, 35.0f, MIN_MS(1), false) == false);
-  assert(shouldTogglePump(false, 35.0f, MIN_MS(1), false) == false);
+  // 30-32°C: still cycles with hot profile
+  assert(shouldTogglePump(true, 31.0f, MIN_MS(2), false) == true);
+  assert(shouldTogglePump(false, 31.0f, MIN_MS(2), false) == true);
+  assert(shouldTogglePump(true, 31.0f, MIN_MS(1), false) == false);
+  assert(shouldTogglePump(false, 31.0f, MIN_MS(1), false) == false);
+}
+
+TEST(test_pump_extreme_always_on) {
+  // > 32°C: pump always on — never toggles off, immediately toggles on
+  assert(shouldPumpAlwaysOn(32.1f) == true);
+  assert(shouldPumpAlwaysOn(40.0f) == true);
+  assert(shouldPumpAlwaysOn(32.0f) == false);
+  assert(shouldPumpAlwaysOn(30.0f) == false);
+
+  // If pump is on, never toggle off regardless of elapsed time
+  assert(shouldTogglePump(true, 35.0f, 0, false) == false);
+  assert(shouldTogglePump(true, 35.0f, MIN_MS(60), false) == false);
+
+  // If pump is off, toggle on immediately
+  assert(shouldTogglePump(false, 35.0f, 0, false) == true);
+  assert(shouldTogglePump(false, 35.0f, MIN_MS(60), false) == true);
 }
 
 TEST(test_pump_should_not_run_freezing) {
@@ -159,6 +178,7 @@ int main() {
   RUN(test_pump_off_should_not_toggle_early);
   RUN(test_pump_off_should_toggle_at_threshold);
   RUN(test_pump_hot_cycle);
+  RUN(test_pump_extreme_always_on);
   RUN(test_pump_should_not_run_freezing);
   RUN(test_pump_toggle_test_mode);
 
