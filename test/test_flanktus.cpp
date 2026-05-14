@@ -11,7 +11,6 @@
 #define MIN_MS(m) ((m) * 60UL * 1000UL)
 
 static int tests_passed = 0;
-static int tests_failed = 0;
 
 #define TEST(name) static void name()
 #define RUN(name) do { \
@@ -26,7 +25,6 @@ static int tests_failed = 0;
 // ═══════════════════════════════════════════
 
 TEST(test_on_time_below_30) {
-  // All temps <= 30 should give 1 min ON
   assert(getOnTime(5.0f)  == MIN_MS(1));
   assert(getOnTime(10.0f) == MIN_MS(1));
   assert(getOnTime(18.0f) == MIN_MS(1));
@@ -35,14 +33,12 @@ TEST(test_on_time_below_30) {
 }
 
 TEST(test_on_time_above_30) {
-  // Above 30 → 2 min ON
   assert(getOnTime(30.1f) == MIN_MS(2));
   assert(getOnTime(35.0f) == MIN_MS(2));
   assert(getOnTime(40.0f) == MIN_MS(2));
 }
 
 TEST(test_off_time_cold) {
-  // <= 10 → pump off (shouldPumpRun=false), but getOffTime returns default
   assert(getOffTime(5.0f)  == MIN_MS(10));
   assert(getOffTime(0.0f)  == MIN_MS(10));
   assert(getOffTime(-5.0f) == MIN_MS(10));
@@ -50,7 +46,6 @@ TEST(test_off_time_cold) {
 }
 
 TEST(test_off_time_default) {
-  // 10 < t <= 25 → 10 min OFF
   assert(getOffTime(10.1f) == MIN_MS(10));
   assert(getOffTime(15.0f) == MIN_MS(10));
   assert(getOffTime(18.0f) == MIN_MS(10));
@@ -59,74 +54,32 @@ TEST(test_off_time_default) {
 }
 
 TEST(test_off_time_warm) {
-  // 25 < t <= 30 → 5 min OFF
   assert(getOffTime(25.1f) == MIN_MS(5));
   assert(getOffTime(28.0f) == MIN_MS(5));
   assert(getOffTime(30.0f) == MIN_MS(5));
 }
 
 TEST(test_off_time_hot) {
-  // > 30 → 2 min OFF
   assert(getOffTime(30.1f) == MIN_MS(2));
   assert(getOffTime(35.0f) == MIN_MS(2));
 }
 
 // ═══════════════════════════════════════════
-// Boundary tests (exact thresholds)
+// Boundary tests
 // ═══════════════════════════════════════════
 
 TEST(test_boundary_at_exactly_30) {
-  // 30.0 is NOT > 30, so ON=1min, OFF=5min (warm tier)
   assert(getOnTime(30.0f)  == MIN_MS(1));
   assert(getOffTime(30.0f) == MIN_MS(5));
 }
 
 TEST(test_boundary_at_exactly_25) {
-  // 25.0 is NOT > 25, so OFF=10min (default tier)
   assert(getOffTime(25.0f) == MIN_MS(10));
 }
 
 TEST(test_boundary_at_exactly_1) {
-  // 1.0 is NOT > 1, so shouldPumpRun=false (too cold)
   assert(shouldPumpRun(1.0f) == false);
   assert(shouldPumpRun(0.0f) == false);
-}
-
-// ═══════════════════════════════════════════
-// EEPROM layout
-// ═══════════════════════════════════════════
-
-TEST(test_entry_address_first) {
-  assert(entryAddress(0) == 2);
-}
-
-TEST(test_entry_address_sequential) {
-  assert(entryAddress(1) == 8);
-  assert(entryAddress(2) == 14);
-  assert(entryAddress(10) == 62);
-}
-
-TEST(test_entry_address_last) {
-  // Last valid entry = MAX_ENTRIES - 1
-  int addr = entryAddress(MAX_ENTRIES - 1);
-  // Should fit within 1024 bytes: addr + 6 <= 1024
-  assert(addr + ENTRY_SIZE <= 1024);
-}
-
-TEST(test_max_entries_value) {
-  assert(MAX_ENTRIES == 170);
-}
-
-// ═══════════════════════════════════════════
-// Ring buffer
-// ═══════════════════════════════════════════
-
-TEST(test_ring_index_wraps) {
-  assert(ringIndex(0) == 0);
-  assert(ringIndex(169) == 169);
-  assert(ringIndex(170) == 0);   // wraps
-  assert(ringIndex(171) == 1);
-  assert(ringIndex(340) == 0);   // wraps again
 }
 
 // ═══════════════════════════════════════════
@@ -134,40 +87,32 @@ TEST(test_ring_index_wraps) {
 // ═══════════════════════════════════════════
 
 TEST(test_pump_on_should_not_toggle_early) {
-  // Pump ON at 20C, only 30s elapsed — should stay ON (needs 1 min)
   assert(shouldTogglePump(true, 20.0f, 30000) == false);
 }
 
 TEST(test_pump_on_should_toggle_at_threshold) {
-  // Pump ON at 20C, exactly 1 min elapsed
   assert(shouldTogglePump(true, 20.0f, MIN_MS(1)) == true);
 }
 
 TEST(test_pump_off_should_not_toggle_early) {
-  // Pump OFF at 20C, 5 min elapsed — needs 10 min
   assert(shouldTogglePump(false, 20.0f, MIN_MS(5)) == false);
 }
 
 TEST(test_pump_off_should_toggle_at_threshold) {
-  // Pump OFF at 20C, 10 min elapsed
   assert(shouldTogglePump(false, 20.0f, MIN_MS(10)) == true);
 }
 
 TEST(test_pump_hot_cycle) {
-  // At 35C: ON=2min, OFF=2min
   assert(shouldTogglePump(true, 35.0f, MIN_MS(2)) == true);
   assert(shouldTogglePump(false, 35.0f, MIN_MS(2)) == true);
-  // Not yet
   assert(shouldTogglePump(true, 35.0f, MIN_MS(1)) == false);
   assert(shouldTogglePump(false, 35.0f, MIN_MS(1)) == false);
 }
 
 TEST(test_pump_should_not_run_freezing) {
-  // Air at or below 1C: pump should not run
   assert(shouldPumpRun(1.0f) == false);
   assert(shouldPumpRun(0.0f) == false);
   assert(shouldPumpRun(-10.0f) == false);
-  // Just above threshold: pump runs
   assert(shouldPumpRun(1.1f) == true);
   assert(shouldPumpRun(5.0f) == true);
 }
@@ -192,15 +137,6 @@ int main() {
   RUN(test_boundary_at_exactly_30);
   RUN(test_boundary_at_exactly_25);
   RUN(test_boundary_at_exactly_1);
-
-  printf("\nEEPROM layout:\n");
-  RUN(test_entry_address_first);
-  RUN(test_entry_address_sequential);
-  RUN(test_entry_address_last);
-  RUN(test_max_entries_value);
-
-  printf("\nRing buffer:\n");
-  RUN(test_ring_index_wraps);
 
   printf("\nPump cycle decisions:\n");
   RUN(test_pump_on_should_not_toggle_early);

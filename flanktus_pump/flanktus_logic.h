@@ -6,16 +6,12 @@
  * No Arduino dependencies — just math and thresholds.
  */
 
-// ── Constants ──
-const int ENTRY_SIZE   = 6;
-const int MAX_ENTRIES  = (1024 - 2) / ENTRY_SIZE;  // 170
-
 // ── Timing profiles (edit these to tune pump cycling) ──
 //
 //  Air temp  │  ON          │  OFF
 //  > 30°C    │  ON_HOT      │  OFF_HOT
 //  25-30°C   │  ON_DEFAULT  │  OFF_WARM
-//  10-25°C   │  ON_DEFAULT  │  OFF_DEFAULT
+//  1-25°C    │  ON_DEFAULT  │  OFF_DEFAULT
 //  ≤ 1°C     │  pump off    │  pump off
 //
 const unsigned long ON_DEFAULT  =  1UL * 60UL * 1000UL;  //  1 min
@@ -44,16 +40,6 @@ inline unsigned long getOffTime(float airC) {
 // Returns true if pump should cycle — stops if air temp ≤1°C
 inline bool shouldPumpRun(float airC) {
   return airC > TEMP_MIN_RUN;
-}
-
-// ── EEPROM address calc ──
-inline int entryAddress(int idx) {
-  return 2 + idx * ENTRY_SIZE;
-}
-
-// ── Ring buffer index ──
-inline int ringIndex(int count) {
-  return count % MAX_ENTRIES;
 }
 
 // ── Pump cycle decision ──

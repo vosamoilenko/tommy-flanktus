@@ -33,12 +33,9 @@
  *   Format: minutes,water_c,air_c,pump,auto
  *
  * Serial commands (9600 baud):
- *   d = dump EEPROM log as CSV
- *   c = clear EEPROM log
  *   s = current status
  */
 
-#include <EEPROM.h>
 #include <OneWire.h>
 #include <DallasTemperature.h>
 #include <SPI.h>
@@ -77,7 +74,7 @@ const char* SD_FILENAME = "FLANKTUS.CSV";
 float cachedAirTemp = 20.0;
 float cachedWaterTemp = 20.0;
 unsigned long lastTempRead = 0;
-const unsigned long TEMP_READ_INTERVAL = 30UL * 1000UL;
+const unsigned long TEMP_READ_INTERVAL = 5UL * 1000UL;
 
 // ── Logging ──
 const unsigned long LOG_INTERVAL = 60UL * 60UL * 1000UL;
@@ -95,16 +92,6 @@ const unsigned long LCD_INTERVAL = 1UL * 1000UL;
 unsigned long lastLCDUpdate = 0;
 
 // ── Helpers ──
-uint16_t getEntryCount() {
-  uint16_t c;
-  EEPROM.get(0, c);
-  return (c > MAX_ENTRIES) ? 0 : c;
-}
-
-void setEntryCount(uint16_t c) {
-  EEPROM.put(0, c);
-}
-
 void setPump(bool on) {
   pumpOn = on;
   digitalWrite(RELAY_PIN, on ? LOW : HIGH);  // active-LOW relay
@@ -132,11 +119,10 @@ void refreshTemps(unsigned long now) {
   }
 }
 
-// ── SD card logging ──
+// ── SD card ──
 void initSD() {
   if (SD.begin(SD_CS_PIN)) {
     sdReady = true;
-    // Write header if file doesn't exist
     if (!SD.exists(SD_FILENAME)) {
       File f = SD.open(SD_FILENAME, FILE_WRITE);
       if (f) {
@@ -149,63 +135,25 @@ void initSD() {
   }
 }
 
-void logToSD(float waterC, float airC) {
+void logSensorData() {
+  float w = readWaterTemp();
+  float a = readAirTemp();
+
+  if (w < -99.0 && a < -99.0) return;
   if (!sdReady) return;
+
   File f = SD.open(SD_FILENAME, FILE_WRITE);
   if (f) {
     uint16_t mins = (uint16_t)(millis() / 60000UL);
     f.print(mins); f.print(',');
-    f.print(waterC, 1); f.print(',');
-    f.print(airC, 1); f.print(',');
+    f.print(w, 1); f.print(',');
+    f.print(a, 1); f.print(',');
     f.print(pumpOn ? 1 : 0); f.print(',');
     f.println(autoMode ? 1 : 0);
     f.close();
     lastSDWriteTime = millis();
     sdWriteFlash = true;
   }
-}
-
-// ── EEPROM + SD logging combined ──
-void logSensorData() {
-  float w = readWaterTemp();
-  float a = readAirTemp();
-
-  // Skip logging if both sensors are disconnected
-  if (w < -99.0 && a < -99.0) return;
-
-  // EEPROM log
-  uint16_t count = getEntryCount();
-  int idx = ringIndex(count);
-  uint16_t mins = (uint16_t)(millis() / 60000UL);
-  int16_t wt = (int16_t)(w * 10);
-  int16_t at = (int16_t)(a * 10);
-  int addr = entryAddress(idx);
-  EEPROM.put(addr, mins);
-  EEPROM.put(addr + 2, wt);
-  EEPROM.put(addr + 4, at);
-  if (count < MAX_ENTRIES) setEntryCount(count + 1);
-
-  // SD card log
-  logToSD(w, a);
-}
-
-// ── EEPROM dump ──
-void dumpLog() {
-  uint16_t count = getEntryCount();
-  Serial.println(F("minutes,water_c,air_c"));
-  for (uint16_t i = 0; i < count; i++) {
-    int addr = entryAddress(i);
-    uint16_t mins; int16_t wt, at;
-    EEPROM.get(addr, mins);
-    EEPROM.get(addr + 2, wt);
-    EEPROM.get(addr + 4, at);
-    Serial.print(mins); Serial.print(',');
-    Serial.print(wt / 10); Serial.print('.'); Serial.print(abs(wt) % 10); Serial.print(',');
-    Serial.print(at / 10); Serial.print('.'); Serial.println(abs(at) % 10);
-  }
-  Serial.print(F("--- ")); Serial.print(count);
-  Serial.print('/'); Serial.print(MAX_ENTRIES);
-  Serial.println(F(" entries ---"));
 }
 
 void printStatus() {
@@ -225,14 +173,11 @@ void printStatus() {
     }
   }
   Serial.print(F("Up:    ")); Serial.print(millis() / 60000UL); Serial.println(F(" min"));
-  Serial.print(F("Log:   ")); Serial.print(getEntryCount());
-  Serial.print('/'); Serial.println(MAX_ENTRIES);
   Serial.print(F("SD:    ")); Serial.println(sdReady ? F("OK") : F("NOT FOUND"));
   Serial.println(F("====================="));
 }
 
 // ── LCD display ──
-// Helper: format mm:ss from milliseconds remaining
 void formatTime(char* buf, unsigned long ms) {
   unsigned long totalSec = ms / 1000UL;
   unsigned long m = totalSec / 60;
@@ -241,21 +186,18 @@ void formatTime(char* buf, unsigned long ms) {
 }
 
 void updateLCD(unsigned long now) {
-  char line[21];  // 20 chars + null
+  char line[21];
 
   // ── Line 0: Temperatures ──
-  // "W:23.5C     A:28.1C"
   lcd.setCursor(0, 0);
   if (cachedWaterTemp < -99.0) {
-    sprintf(line, "W:--.-C     A:");
+    sprintf(line, "W:--.-C");
   } else {
     int wWhole = (int)cachedWaterTemp;
     int wFrac = abs((int)(cachedWaterTemp * 10) % 10);
     sprintf(line, "W:%d.%dC", wWhole, wFrac);
   }
   lcd.print(line);
-
-  // Pad to column 12 for air temp
   int len = strlen(line);
   for (int i = len; i < 12; i++) lcd.print(' ');
 
@@ -266,7 +208,6 @@ void updateLCD(unsigned long now) {
     int aFrac = abs((int)(cachedAirTemp * 10) % 10);
     sprintf(line, "A:%d.%dC", aWhole, aFrac);
     lcd.print(line);
-    // Pad to end
     len = strlen(line);
     for (int i = len; i < 8; i++) lcd.print(' ');
   }
@@ -291,18 +232,12 @@ void updateLCD(unsigned long now) {
     lcd.print(F("Too cold - waiting  "));
   } else {
     unsigned long elapsed = now - cycleStart;
-    unsigned long target;
-    if (pumpOn) {
-      target = getOnTime(cachedAirTemp);
-    } else {
-      target = getOffTime(cachedAirTemp);
-    }
+    unsigned long target = pumpOn ? getOnTime(cachedAirTemp) : getOffTime(cachedAirTemp);
     unsigned long remain = 0;
     if (elapsed < target) remain = target - elapsed;
     char timeBuf[6];
     formatTime(timeBuf, remain);
 
-    // "ON  ends 00:45      " or "OFF next 09:32      "
     if (pumpOn) {
       sprintf(line, "ON  ends %s", timeBuf);
     } else {
@@ -319,7 +254,6 @@ void updateLCD(unsigned long now) {
   unsigned long upHr = upMin / 60;
   unsigned long upM = upMin % 60;
 
-  // Show "SD:OK" or "SD:--" and flash "SD:WR" for 2 seconds after write
   if (sdWriteFlash && (now - lastSDWriteTime < 2000)) {
     sprintf(line, "SD:WR  Up:%luh%02lum", upHr, upM);
   } else {
@@ -337,11 +271,10 @@ void updateLCD(unsigned long now) {
 
 void setup() {
   Serial.begin(9600);
-  digitalWrite(RELAY_PIN, HIGH);   // deactivate relay BEFORE setting as output (active-LOW)
+  digitalWrite(RELAY_PIN, HIGH);
   pinMode(RELAY_PIN, OUTPUT);
   pinMode(BTN_TOGGLE, INPUT_PULLUP);
 
-  // Init LCD
   lcd.init();
   lcd.backlight();
   lcd.setCursor(0, 0);
@@ -349,7 +282,6 @@ void setup() {
   lcd.setCursor(0, 1);
   lcd.print(F("Booting..."));
 
-  // Init sensors
   waterSensor.begin();
   airSensor.begin();
   cachedAirTemp = readAirTemp();
@@ -357,7 +289,6 @@ void setup() {
   if (cachedAirTemp < -99.0) cachedAirTemp = 20.0;
   if (cachedWaterTemp < -99.0) cachedWaterTemp = 20.0;
 
-  // Init SD card
   lcd.setCursor(0, 2);
   lcd.print(F("SD card..."));
   initSD();
@@ -369,7 +300,6 @@ void setup() {
   }
   delay(1000);
 
-  // Start cycling immediately on boot
   cycleStart = millis();
   if (shouldPumpRun(cachedAirTemp)) {
     setPump(true);
@@ -377,26 +307,21 @@ void setup() {
     setPump(false);
   }
 
-  Serial.println(F("FLANKTUS v6.0 | d=dump c=clear s=status"));
+  Serial.println(F("FLANKTUS v6.0 | s=status"));
   Serial.println(F("Auto mode ON — cycling started."));
-  if (sdReady) {
-    Serial.println(F("SD card: OK"));
-  } else {
-    Serial.println(F("SD card: NOT FOUND — logging to EEPROM only"));
-  }
+  Serial.print(F("SD card: "));
+  Serial.println(sdReady ? F("OK") : F("NOT FOUND"));
 }
 
 void loop() {
   unsigned long now = millis();
 
-  // ── Refresh cached temps every 30s ──
   refreshTemps(now);
 
   // ── Button: toggle auto mode ──
   if (digitalRead(BTN_TOGGLE) == LOW && (now - lastDebounce) > 500) {
     lastDebounce = now;
     autoMode = !autoMode;
-
     if (autoMode) {
       pumpOn = true;
       setPump(true);
@@ -465,11 +390,6 @@ void loop() {
   // ── Serial commands ──
   if (Serial.available()) {
     char cmd = Serial.read();
-    if (cmd == 'd' || cmd == 'D') dumpLog();
-    else if (cmd == 'c' || cmd == 'C') {
-      for (int i = 0; i < (int)EEPROM.length(); i++) EEPROM.update(i, 0);
-      Serial.println(F("EEPROM wiped."));
-    }
-    else if (cmd == 's' || cmd == 'S') printStatus();
+    if (cmd == 's' || cmd == 'S') printStatus();
   }
 }
