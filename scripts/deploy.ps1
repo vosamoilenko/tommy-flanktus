@@ -8,6 +8,7 @@ $ErrorActionPreference = "Stop"
 # Ensure arduino-cli is available — check common install locations if not in PATH
 if (-not (Get-Command "arduino-cli" -ErrorAction SilentlyContinue)) {
     $candidates = @(
+        (Join-Path $PSScriptRoot "..\..\arduino-cli.exe"),
         "$env:USERPROFILE\arduino-cli.exe",
         "$env:LOCALAPPDATA\Arduino15\arduino-cli.exe",
         "$env:LOCALAPPDATA\Programs\arduino-cli\arduino-cli.exe",
