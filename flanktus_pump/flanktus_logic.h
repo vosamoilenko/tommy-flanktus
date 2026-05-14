@@ -14,11 +14,11 @@
 //  1-25°C    │  ON_DEFAULT  │  OFF_DEFAULT
 //  ≤ 1°C     │  pump off    │  pump off
 //
-const unsigned long ON_DEFAULT  =  1UL * 60UL * 1000UL;  //  1 min
-const unsigned long ON_HOT      =  2UL * 60UL * 1000UL;  //  2 min
-const unsigned long OFF_DEFAULT = 10UL * 60UL * 1000UL;  // 10 min
-const unsigned long OFF_WARM    =  5UL * 60UL * 1000UL;  //  5 min
-const unsigned long OFF_HOT     =  2UL * 60UL * 1000UL;  //  2 min
+const unsigned long ON_DEFAULT  = 10UL * 1000UL;  // 10 sec (TEST — prod: 1 min)
+const unsigned long ON_HOT      = 20UL * 1000UL;  // 20 sec (TEST — prod: 2 min)
+const unsigned long OFF_DEFAULT = 30UL * 1000UL;  // 30 sec (TEST — prod: 10 min)
+const unsigned long OFF_WARM    = 20UL * 1000UL;  // 20 sec (TEST — prod: 5 min)
+const unsigned long OFF_HOT     = 10UL * 1000UL;  // 10 sec (TEST — prod: 2 min)
 
 const float TEMP_HOT       = 30.0f;  // °C — above this: hot profile
 const float TEMP_WARM      = 25.0f;  // °C — above this: warm profile
