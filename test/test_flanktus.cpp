@@ -1,5 +1,5 @@
 /*
- * Native tests for FLANKTUS logic.
+ * Native tests for FLANKTUS v6.0 logic.
  * Compile & run:  g++ -std=c++11 -o test_flanktus test_flanktus.cpp && ./test_flanktus
  */
 
@@ -177,8 +177,8 @@ TEST(test_pump_should_not_run_freezing) {
 // ═══════════════════════════════════════════
 
 int main() {
-  printf("FLANKTUS Logic Tests\n");
-  printf("====================\n");
+  printf("FLANKTUS v6.0 Logic Tests\n");
+  printf("=========================\n");
 
   printf("\nTiming profiles:\n");
   RUN(test_on_time_below_30);
@@ -210,7 +210,7 @@ int main() {
   RUN(test_pump_hot_cycle);
   RUN(test_pump_should_not_run_freezing);
 
-  printf("\n====================\n");
+  printf("\n=========================\n");
   printf("All %d tests passed!\n", tests_passed);
   return 0;
 }

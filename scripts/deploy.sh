@@ -66,6 +66,13 @@ else
   ERRORS=$((ERRORS + 1))
 fi
 
+# Check SD card
+if echo "$HEALTH_OUTPUT" | grep -q "SD card: OK"; then
+  echo "OK  SD card detected"
+elif echo "$HEALTH_OUTPUT" | grep -q "SD card: NOT FOUND"; then
+  echo "WARN  SD card not found — logging to EEPROM only"
+fi
+
 # Check for debug output with sensor readings
 if echo "$HEALTH_OUTPUT" | grep -q "\[DBG"; then
   # Check water sensor
@@ -85,6 +92,10 @@ if echo "$HEALTH_OUTPUT" | grep -q "\[DBG"; then
     echo "OK  Auto mode active — pump is cycling"
   else
     echo "WARN  Auto mode is OFF"
+  fi
+  # Check SD in debug
+  if echo "$HEALTH_OUTPUT" | grep "\[DBG" | grep -q "sd=OK"; then
+    echo "OK  SD card logging active"
   fi
 else
   echo "FAIL  No debug output — something is wrong"

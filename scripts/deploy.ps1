@@ -1,4 +1,4 @@
-# deploy.ps1 - Compile, upload, health-check, and monitor FLANKTUS
+# deploy.ps1 - Compile, upload, health-check, and monitor FLANKTUS v6.0
 # Usage: double-click deploy.bat
 #   or:  powershell -ExecutionPolicy Bypass -File deploy.ps1
 #   or:  powershell -ExecutionPolicy Bypass -File deploy.ps1 COM3
@@ -128,6 +128,13 @@ if ($healthLines -match "FLANKTUS") {
     $errors++
 }
 
+# Check SD card
+if ($healthLines -match "SD card: OK") {
+    Write-Host "OK    SD card detected" -ForegroundColor Green
+} elseif ($healthLines -match "SD card: NOT FOUND") {
+    Write-Host "WARN  SD card not found - logging to EEPROM only" -ForegroundColor Yellow
+}
+
 # Check debug output
 $dbgLines = $healthLines | Where-Object { $_ -match "\[DBG" }
 
@@ -151,6 +158,11 @@ if ($dbgLines) {
         Write-Host "OK    Auto mode active - pump is cycling" -ForegroundColor Green
     } else {
         Write-Host "WARN  Auto mode is OFF" -ForegroundColor Yellow
+    }
+
+    # SD status in debug lines
+    if ($dbgLines -match "sd=OK") {
+        Write-Host "OK    SD card logging active" -ForegroundColor Green
     }
 } else {
     Write-Host "FAIL  No debug output - something is wrong" -ForegroundColor Red

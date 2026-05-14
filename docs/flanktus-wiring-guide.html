@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Flanktus v5.0 — Wiring Guide</title>
+<title>Flanktus v6.0 — Wiring Guide</title>
 <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@300;400;500;600;700&family=DM+Sans:ital,wght@0,300;0,400;0,500;1,300&display=swap" rel="stylesheet">
 <style>
   :root {
@@ -197,11 +197,11 @@
 <div class="container">
 
   <header>
-    <div class="badge">Flanktus System v5.0</div>
+    <div class="badge">Flanktus System v6.0</div>
     <h1>Wiring <em>Guide</em></h1>
     <p class="subtitle">
-      <strong>Arduino Uno</strong> + <strong>Relay</strong> + <strong>2&times; DS18B20</strong> + <strong>Pump</strong><br>
-      Auto-cycling rooftop hydroponic tower &middot; water temp &middot; air temp &middot; EEPROM logging
+      <strong>Arduino Uno</strong> + <strong>Relay</strong> + <strong>2&times; DS18B20</strong> + <strong>SD Card</strong> + <strong>LCD 2004</strong> + <strong>Pump</strong><br>
+      Auto-cycling rooftop hydroponic tower &middot; water temp &middot; air temp &middot; SD logging &middot; LCD display
     </p>
   </header>
 
@@ -222,28 +222,143 @@
       <div class="part"><div class="part-dot r">&#9645;</div><div><div class="pn">Jumper Wires</div><div class="pd">male-to-female</div></div></div>
       <div class="part"><div class="part-dot p">&#9645;</div><div><div class="pn">USB-B Cable + Charger</div><div class="pd">powers the Arduino</div></div></div>
       <div class="part"><div class="part-dot br">&#9645;</div><div><div class="pn">Wago Connectors</div><div class="pd">already attached to pump</div></div></div>
+      <div class="part"><div class="part-dot g">&#9645;</div><div><div class="pn">SD Card Module</div><div class="pd">SPI &middot; 3.3V regulator onboard</div></div></div>
+      <div class="part"><div class="part-dot c">&#9645;</div><div><div class="pn">LCD 2004 20&times;4 I2C</div><div class="pd">I2C backpack &middot; 5V</div></div></div>
     </div>
   </section>
 
-  <!-- ════════ 02 WIRING DIAGRAM ════════ -->
+  <!-- ════════ 02 CONNECTION TABLE ════════ -->
   <section class="sec">
     <div class="sec-head">
       <div class="sec-num">02</div>
-      <span class="sec-title">Arduino &rarr; Relay &rarr; Pump &rarr; Sensors</span>
+      <span class="sec-title">Connection Table</span>
       <div class="sec-line"></div>
     </div>
     <div class="card">
-      <svg viewBox="0 0 960 600" xmlns="http://www.w3.org/2000/svg">
+      <table style="width:100%; border-collapse:collapse; font-family:'JetBrains Mono',monospace; font-size:13px;">
+        <thead>
+          <tr style="border-bottom:2px solid var(--border-light);">
+            <th style="text-align:left; padding:10px 12px; color:var(--green); font-size:11px; letter-spacing:1px; text-transform:uppercase;">Arduino Pin</th>
+            <th style="text-align:left; padding:10px 12px; color:var(--green); font-size:11px; letter-spacing:1px; text-transform:uppercase;">Component</th>
+            <th style="text-align:left; padding:10px 12px; color:var(--green); font-size:11px; letter-spacing:1px; text-transform:uppercase;">Component Pin</th>
+            <th style="text-align:left; padding:10px 12px; color:var(--green); font-size:11px; letter-spacing:1px; text-transform:uppercase;">Protocol</th>
+            <th style="text-align:left; padding:10px 12px; color:var(--green); font-size:11px; letter-spacing:1px; text-transform:uppercase;">Notes</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr style="border-bottom:1px solid var(--border);">
+            <td style="padding:10px 12px; color:var(--cyan); font-weight:600;">D2</td>
+            <td style="padding:10px 12px; color:var(--text-primary);">DS18B20 #1</td>
+            <td style="padding:10px 12px; color:var(--text-secondary);">DATA</td>
+            <td style="padding:10px 12px; color:var(--text-muted);">OneWire</td>
+            <td style="padding:10px 12px; color:var(--text-muted); font-size:11px;">Water temp &middot; 4.7k&#8486; pull-up to 5V</td>
+          </tr>
+          <tr style="border-bottom:1px solid var(--border);">
+            <td style="padding:10px 12px; color:var(--orange); font-weight:600;">D4</td>
+            <td style="padding:10px 12px; color:var(--text-primary);">DS18B20 #2</td>
+            <td style="padding:10px 12px; color:var(--text-secondary);">DATA</td>
+            <td style="padding:10px 12px; color:var(--text-muted);">OneWire</td>
+            <td style="padding:10px 12px; color:var(--text-muted); font-size:11px;">Air temp &middot; 4.7k&#8486; pull-up to 5V</td>
+          </tr>
+          <tr style="border-bottom:1px solid var(--border);">
+            <td style="padding:10px 12px; color:var(--purple); font-weight:600;">D5</td>
+            <td style="padding:10px 12px; color:var(--text-primary);">Push Button</td>
+            <td style="padding:10px 12px; color:var(--text-secondary);">Leg 1</td>
+            <td style="padding:10px 12px; color:var(--text-muted);">Digital</td>
+            <td style="padding:10px 12px; color:var(--text-muted); font-size:11px;">Other leg to GND &middot; internal pullup</td>
+          </tr>
+          <tr style="border-bottom:1px solid var(--border);">
+            <td style="padding:10px 12px; color:var(--green); font-weight:600;">D7</td>
+            <td style="padding:10px 12px; color:var(--text-primary);">Relay Module</td>
+            <td style="padding:10px 12px; color:var(--text-secondary);">IN</td>
+            <td style="padding:10px 12px; color:var(--text-muted);">Digital</td>
+            <td style="padding:10px 12px; color:var(--text-muted); font-size:11px;">Controls pump power via relay</td>
+          </tr>
+          <tr style="border-bottom:1px solid var(--border); background:rgba(16,185,129,0.03);">
+            <td style="padding:10px 12px; color:var(--green); font-weight:600;">D10</td>
+            <td style="padding:10px 12px; color:var(--text-primary);">SD Card Module</td>
+            <td style="padding:10px 12px; color:var(--text-secondary);">CS</td>
+            <td style="padding:10px 12px; color:var(--text-muted);">SPI</td>
+            <td style="padding:10px 12px; color:var(--text-muted); font-size:11px;">Chip select</td>
+          </tr>
+          <tr style="border-bottom:1px solid var(--border); background:rgba(16,185,129,0.03);">
+            <td style="padding:10px 12px; color:var(--green); font-weight:600;">D11</td>
+            <td style="padding:10px 12px; color:var(--text-primary);">SD Card Module</td>
+            <td style="padding:10px 12px; color:var(--text-secondary);">MOSI</td>
+            <td style="padding:10px 12px; color:var(--text-muted);">SPI</td>
+            <td style="padding:10px 12px; color:var(--text-muted); font-size:11px;">Fixed SPI pin</td>
+          </tr>
+          <tr style="border-bottom:1px solid var(--border); background:rgba(16,185,129,0.03);">
+            <td style="padding:10px 12px; color:var(--green); font-weight:600;">D12</td>
+            <td style="padding:10px 12px; color:var(--text-primary);">SD Card Module</td>
+            <td style="padding:10px 12px; color:var(--text-secondary);">MISO</td>
+            <td style="padding:10px 12px; color:var(--text-muted);">SPI</td>
+            <td style="padding:10px 12px; color:var(--text-muted); font-size:11px;">Fixed SPI pin</td>
+          </tr>
+          <tr style="border-bottom:1px solid var(--border); background:rgba(16,185,129,0.03);">
+            <td style="padding:10px 12px; color:var(--green); font-weight:600;">D13</td>
+            <td style="padding:10px 12px; color:var(--text-primary);">SD Card Module</td>
+            <td style="padding:10px 12px; color:var(--text-secondary);">SCK</td>
+            <td style="padding:10px 12px; color:var(--text-muted);">SPI</td>
+            <td style="padding:10px 12px; color:var(--text-muted); font-size:11px;">Fixed SPI pin &middot; LED 13 no longer available</td>
+          </tr>
+          <tr style="border-bottom:1px solid var(--border); background:rgba(34,211,238,0.03);">
+            <td style="padding:10px 12px; color:var(--cyan); font-weight:600;">A4</td>
+            <td style="padding:10px 12px; color:var(--text-primary);">LCD 2004 I2C</td>
+            <td style="padding:10px 12px; color:var(--text-secondary);">SDA</td>
+            <td style="padding:10px 12px; color:var(--text-muted);">I2C</td>
+            <td style="padding:10px 12px; color:var(--text-muted); font-size:11px;">Data line</td>
+          </tr>
+          <tr style="border-bottom:1px solid var(--border); background:rgba(34,211,238,0.03);">
+            <td style="padding:10px 12px; color:var(--cyan); font-weight:600;">A5</td>
+            <td style="padding:10px 12px; color:var(--text-primary);">LCD 2004 I2C</td>
+            <td style="padding:10px 12px; color:var(--text-secondary);">SCL</td>
+            <td style="padding:10px 12px; color:var(--text-muted);">I2C</td>
+            <td style="padding:10px 12px; color:var(--text-muted); font-size:11px;">Clock line</td>
+          </tr>
+          <tr style="border-bottom:1px solid var(--border);">
+            <td style="padding:10px 12px; color:var(--red); font-weight:600;">5V</td>
+            <td style="padding:10px 12px; color:var(--text-primary);">All modules</td>
+            <td style="padding:10px 12px; color:var(--text-secondary);">VCC</td>
+            <td style="padding:10px 12px; color:var(--text-muted);">Power</td>
+            <td style="padding:10px 12px; color:var(--text-muted); font-size:11px;">Relay, DS18B20&times;2, SD card, LCD</td>
+          </tr>
+          <tr>
+            <td style="padding:10px 12px; color:var(--gray); font-weight:600;">GND</td>
+            <td style="padding:10px 12px; color:var(--text-primary);">All modules</td>
+            <td style="padding:10px 12px; color:var(--text-secondary);">GND</td>
+            <td style="padding:10px 12px; color:var(--text-muted);">Power</td>
+            <td style="padding:10px 12px; color:var(--text-muted); font-size:11px;">Common ground for everything</td>
+          </tr>
+        </tbody>
+      </table>
+
+      <div class="warn info" style="margin-top:20px">
+        <span class="wi" style="color:var(--cyan)">&#9432;</span>
+        <p><strong style="color:var(--cyan)">No pin conflicts.</strong> SD card uses SPI (D10&ndash;D13), LCD uses I2C (A4&ndash;A5), sensors use OneWire (D2, D4), button is D5, relay is D7. All on separate buses.</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- ════════ 03 WIRING DIAGRAM ════════ -->
+  <section class="sec">
+    <div class="sec-head">
+      <div class="sec-num">03</div>
+      <span class="sec-title">Arduino &rarr; Relay &rarr; Pump &rarr; Sensors &rarr; SD &rarr; LCD</span>
+      <div class="sec-line"></div>
+    </div>
+    <div class="card">
+      <svg viewBox="0 0 960 750" xmlns="http://www.w3.org/2000/svg">
         <defs>
           <pattern id="dots" width="20" height="20" patternUnits="userSpaceOnUse">
             <circle cx="10" cy="10" r="0.5" fill="var(--svg-grid-dot)"/>
           </pattern>
         </defs>
-        <rect width="960" height="600" fill="url(#dots)"/>
+        <rect width="960" height="750" fill="url(#dots)"/>
 
         <!-- ── ARDUINO UNO ── -->
-        <rect x="30" y="40" width="240" height="360" rx="14" fill="var(--svg-board-fill)" stroke="var(--svg-board-stroke)" stroke-width="1.5"/>
-        <rect x="42" y="52" width="216" height="336" rx="10" fill="var(--svg-inner)" stroke="var(--svg-hole-stroke)" stroke-width="1"/>
+        <rect x="30" y="40" width="240" height="400" rx="14" fill="var(--svg-board-fill)" stroke="var(--svg-board-stroke)" stroke-width="1.5"/>
+        <rect x="42" y="52" width="216" height="376" rx="10" fill="var(--svg-inner)" stroke="var(--svg-hole-stroke)" stroke-width="1"/>
         <text x="150" y="80" text-anchor="middle" class="mono" fill="var(--green)" font-size="16" font-weight="700">Arduino Uno</text>
         <text x="150" y="96" text-anchor="middle" class="mono" fill="var(--svg-text-dim)" font-size="9">ATmega328P</text>
 
@@ -273,38 +388,64 @@
         <text x="218" y="170" text-anchor="middle" class="mono" fill="var(--green)" font-size="9" font-weight="600">D7</text>
         <text x="190" y="171" text-anchor="end" class="mono" fill="var(--svg-text-dim)" font-size="7">relay</text>
 
-        <text x="90" y="250" class="mono" fill="var(--svg-text-dim)" font-size="7" letter-spacing="1.5">POWER</text>
+        <!-- Pin D10 — SD CS -->
+        <rect x="196" y="184" width="44" height="18" rx="4" fill="var(--svg-inner)" stroke="var(--green)" stroke-width="1.5"/>
+        <text x="218" y="196" text-anchor="middle" class="mono" fill="var(--green)" font-size="9" font-weight="600">D10</text>
+        <text x="183" y="197" text-anchor="end" class="mono" fill="var(--svg-text-dim)" font-size="7">CS</text>
+
+        <!-- Pin D11 — SD MOSI -->
+        <rect x="196" y="206" width="44" height="18" rx="4" fill="var(--svg-inner)" stroke="var(--green)" stroke-width="1.5"/>
+        <text x="218" y="218" text-anchor="middle" class="mono" fill="var(--green)" font-size="9" font-weight="600">D11</text>
+        <text x="183" y="219" text-anchor="end" class="mono" fill="var(--svg-text-dim)" font-size="7">MOSI</text>
+
+        <!-- Pin D12 — SD MISO -->
+        <rect x="196" y="228" width="44" height="18" rx="4" fill="var(--svg-inner)" stroke="var(--green)" stroke-width="1.5"/>
+        <text x="218" y="240" text-anchor="middle" class="mono" fill="var(--green)" font-size="9" font-weight="600">D12</text>
+        <text x="183" y="241" text-anchor="end" class="mono" fill="var(--svg-text-dim)" font-size="7">MISO</text>
+
+        <!-- Pin D13 — SD SCK -->
+        <rect x="196" y="250" width="44" height="18" rx="4" fill="var(--svg-inner)" stroke="var(--green)" stroke-width="1.5"/>
+        <text x="218" y="262" text-anchor="middle" class="mono" fill="var(--green)" font-size="9" font-weight="600">D13</text>
+        <text x="183" y="263" text-anchor="end" class="mono" fill="var(--svg-text-dim)" font-size="7">SCK</text>
+
+        <text x="90" y="290" class="mono" fill="var(--svg-text-dim)" font-size="7" letter-spacing="1.5">ANALOG / I2C</text>
+
+        <!-- Pin A4 — LCD SDA -->
+        <rect x="60" y="298" width="44" height="18" rx="4" fill="var(--svg-inner)" stroke="var(--cyan)" stroke-width="1.5"/>
+        <text x="82" y="310" text-anchor="middle" class="mono" fill="var(--cyan)" font-size="9" font-weight="600">A4</text>
+        <text x="112" y="311" class="mono" fill="var(--svg-text-dim)" font-size="7">SDA</text>
+
+        <!-- Pin A5 — LCD SCL -->
+        <rect x="60" y="320" width="44" height="18" rx="4" fill="var(--svg-inner)" stroke="var(--cyan)" stroke-width="1.5"/>
+        <text x="82" y="332" text-anchor="middle" class="mono" fill="var(--cyan)" font-size="9" font-weight="600">A5</text>
+        <text x="112" y="333" class="mono" fill="var(--svg-text-dim)" font-size="7">SCL</text>
+
+        <text x="90" y="360" class="mono" fill="var(--svg-text-dim)" font-size="7" letter-spacing="1.5">POWER</text>
 
         <!-- 5V -->
-        <rect x="196" y="258" width="44" height="18" rx="4" fill="var(--svg-inner)" stroke="var(--red)" stroke-width="1.5"/>
-        <text x="218" y="270" text-anchor="middle" class="mono" fill="var(--red)" font-size="9" font-weight="600">5V</text>
+        <rect x="196" y="368" width="44" height="18" rx="4" fill="var(--svg-inner)" stroke="var(--red)" stroke-width="1.5"/>
+        <text x="218" y="380" text-anchor="middle" class="mono" fill="var(--red)" font-size="9" font-weight="600">5V</text>
 
         <!-- GND -->
-        <rect x="196" y="280" width="44" height="18" rx="4" fill="var(--svg-inner)" stroke="var(--gray)" stroke-width="1.5"/>
-        <text x="218" y="292" text-anchor="middle" class="mono" fill="var(--gray)" font-size="9" font-weight="600">GND</text>
-
-        <!-- LED 13 -->
-        <circle cx="80" cy="320" r="5" fill="var(--svg-inner)" stroke="var(--green)" stroke-width="1">
-          <animate attributeName="fill" values="var(--svg-inner);var(--green);var(--svg-inner)" dur="11s" keyTimes="0;0.09;0.091" repeatCount="indefinite"/>
-        </circle>
-        <text x="93" y="324" class="mono" fill="var(--svg-text-dim)" font-size="7">LED 13 (auto mode indicator)</text>
+        <rect x="196" y="390" width="44" height="18" rx="4" fill="var(--svg-inner)" stroke="var(--gray)" stroke-width="1.5"/>
+        <text x="218" y="402" text-anchor="middle" class="mono" fill="var(--gray)" font-size="9" font-weight="600">GND</text>
 
         <!-- USB power -->
-        <rect x="100" y="410" width="100" height="28" rx="6" fill="var(--svg-board-fill)" stroke="var(--purple)" stroke-width="1"/>
-        <text x="150" y="428" text-anchor="middle" class="mono" fill="var(--purple)" font-size="9">USB 5V Charger</text>
-        <line x1="150" y1="400" x2="150" y2="410" stroke="var(--purple)" stroke-width="1.5" stroke-dasharray="3,2"/>
+        <rect x="100" y="450" width="100" height="28" rx="6" fill="var(--svg-board-fill)" stroke="var(--purple)" stroke-width="1"/>
+        <text x="150" y="468" text-anchor="middle" class="mono" fill="var(--purple)" font-size="9">USB 5V Charger</text>
+        <line x1="150" y1="440" x2="150" y2="450" stroke="var(--purple)" stroke-width="1.5" stroke-dasharray="3,2"/>
 
         <!-- ══ WIRES: Arduino → Relay ══ -->
         <path d="M 240,167 C 310,167 340,140 400,140" fill="none" stroke="var(--green)" stroke-width="3" stroke-linecap="round"/>
         <circle cx="240" cy="167" r="4" fill="var(--green)"/>
         <circle cx="400" cy="140" r="4" fill="var(--green)"/>
 
-        <path d="M 240,267 C 310,267 360,100 400,100" fill="none" stroke="var(--red)" stroke-width="2.5" stroke-linecap="round"/>
-        <circle cx="240" cy="267" r="4" fill="var(--red)"/>
+        <path d="M 240,377 C 310,377 360,100 400,100" fill="none" stroke="var(--red)" stroke-width="2.5" stroke-linecap="round"/>
+        <circle cx="240" cy="377" r="4" fill="var(--red)"/>
         <circle cx="400" cy="100" r="4" fill="var(--red)"/>
 
-        <path d="M 240,289 C 310,289 360,120 400,120" fill="none" stroke="var(--gray)" stroke-width="2.5" stroke-linecap="round"/>
-        <circle cx="240" cy="289" r="4" fill="var(--gray)"/>
+        <path d="M 240,399 C 310,399 360,120 400,120" fill="none" stroke="var(--gray)" stroke-width="2.5" stroke-linecap="round"/>
+        <circle cx="240" cy="399" r="4" fill="var(--gray)"/>
         <circle cx="400" cy="120" r="4" fill="var(--gray)"/>
 
         <rect x="295" y="148" width="72" height="14" rx="3" fill="var(--green-dim)"/>
@@ -363,81 +504,110 @@
         <text x="655" y="432" text-anchor="middle" class="mono" fill="var(--gray)" font-size="10" font-weight="600">230V Mains</text>
         <line x1="655" y1="410" x2="655" y2="390" stroke="var(--gray)" stroke-width="1.5" stroke-dasharray="4,3"/>
 
+        <!-- ══ SD CARD MODULE ══ -->
+        <rect x="30" y="510" width="180" height="120" rx="12" fill="var(--svg-board-fill)" stroke="var(--green)" stroke-width="1.5"/>
+        <rect x="38" y="518" width="164" height="104" rx="8" fill="var(--svg-inner)" stroke="var(--svg-hole-stroke)" stroke-width="1"/>
+        <text x="120" y="542" text-anchor="middle" class="mono" fill="var(--green)" font-size="13" font-weight="700">SD Card</text>
+        <text x="120" y="556" text-anchor="middle" class="mono" fill="var(--svg-text-dim)" font-size="8">SPI Module</text>
+        <text x="50" y="575" class="mono" fill="var(--green)" font-size="8">CS</text>
+        <text x="50" y="589" class="mono" fill="var(--green)" font-size="8">MOSI</text>
+        <text x="50" y="603" class="mono" fill="var(--green)" font-size="8">MISO</text>
+        <text x="50" y="617" class="mono" fill="var(--green)" font-size="8">SCK</text>
+        <text x="160" y="575" text-anchor="end" class="mono" fill="var(--red)" font-size="8">VCC</text>
+        <text x="160" y="589" text-anchor="end" class="mono" fill="var(--gray)" font-size="8">GND</text>
+
+        <!-- Wires: Arduino SPI → SD Card -->
+        <path d="M 240,193 C 260,193 260,510 120,510" fill="none" stroke="var(--green)" stroke-width="2" stroke-linecap="round" stroke-dasharray="5,3"/>
+        <circle cx="240" cy="193" r="3" fill="var(--green)"/>
+        <rect x="244" y="186" width="72" height="14" rx="3" fill="var(--green-dim)"/>
+        <text x="280" y="196" text-anchor="middle" class="mono" fill="var(--green)" font-size="7">D10-13 &rarr; SPI</text>
+
+        <!-- ══ LCD 2004 I2C ══ -->
+        <rect x="695" y="480" width="200" height="100" rx="12" fill="var(--svg-board-fill)" stroke="var(--cyan)" stroke-width="1.5"/>
+        <rect x="703" y="488" width="184" height="84" rx="8" fill="var(--svg-inner)" stroke="var(--svg-hole-stroke)" stroke-width="1"/>
+        <text x="795" y="512" text-anchor="middle" class="mono" fill="var(--cyan)" font-size="13" font-weight="700">LCD 2004</text>
+        <text x="795" y="526" text-anchor="middle" class="mono" fill="var(--svg-text-dim)" font-size="8">20&times;4 I2C &middot; 0x27</text>
+        <text x="715" y="545" class="mono" fill="var(--cyan)" font-size="8">SDA</text>
+        <text x="715" y="559" class="mono" fill="var(--cyan)" font-size="8">SCL</text>
+        <text x="855" y="545" text-anchor="end" class="mono" fill="var(--red)" font-size="8">VCC</text>
+        <text x="855" y="559" text-anchor="end" class="mono" fill="var(--gray)" font-size="8">GND</text>
+
+        <!-- Wires: Arduino I2C → LCD -->
+        <path d="M 60,307 C 20,307 10,530 695,530" fill="none" stroke="var(--cyan)" stroke-width="2" stroke-linecap="round" stroke-dasharray="5,3"/>
+        <circle cx="60" cy="307" r="3" fill="var(--cyan)"/>
+        <circle cx="695" cy="530" r="3" fill="var(--cyan)"/>
+        <rect x="350" y="520" width="80" height="14" rx="3" fill="var(--cyan-dim)"/>
+        <text x="390" y="530" text-anchor="middle" class="mono" fill="var(--cyan)" font-size="7">A4-A5 &rarr; I2C</text>
+
         <!-- ══ SENSORS ══ -->
 
         <!-- DS18B20 #1 Water -->
-        <rect x="30" y="460" width="260" height="100" rx="12" fill="var(--svg-board-fill)" stroke="var(--cyan)" stroke-width="1.5"/>
+        <rect x="30" y="650" width="260" height="90" rx="12" fill="var(--svg-board-fill)" stroke="var(--cyan)" stroke-width="1.5"/>
         <!-- Waterproof probe shape -->
-        <rect x="42" y="472" width="60" height="14" rx="7" fill="#8899aa" stroke="#aabbcc" stroke-width="1"/>
-        <rect x="42" y="474" width="60" height="10" rx="5" fill="#99aabb" opacity="0.25"/>
-        <ellipse cx="44" cy="479" rx="3" ry="6" fill="#aabbcc" opacity="0.3"/>
+        <rect x="42" y="660" width="60" height="14" rx="7" fill="#8899aa" stroke="#aabbcc" stroke-width="1"/>
+        <rect x="42" y="662" width="60" height="10" rx="5" fill="#99aabb" opacity="0.25"/>
+        <ellipse cx="44" cy="667" rx="3" ry="6" fill="#aabbcc" opacity="0.3"/>
         <!-- Cable from probe -->
-        <path d="M 102,479 C 115,479 120,479 130,479" fill="none" stroke="#555" stroke-width="5" stroke-linecap="round"/>
+        <path d="M 102,667 C 115,667 120,667 130,667" fill="none" stroke="#555" stroke-width="5" stroke-linecap="round"/>
         <!-- 3 wire split -->
-        <line x1="130" y1="475" x2="146" y2="470" stroke="var(--red)" stroke-width="1.5" stroke-linecap="round"/>
-        <line x1="130" y1="479" x2="146" y2="479" stroke="#eab308" stroke-width="1.5" stroke-linecap="round"/>
-        <line x1="130" y1="483" x2="146" y2="488" stroke="#555" stroke-width="1.5" stroke-linecap="round"/>
-        <circle cx="146" cy="470" r="2" fill="var(--red)"/>
-        <circle cx="146" cy="479" r="2" fill="#eab308"/>
-        <circle cx="146" cy="488" r="2" fill="#555"/>
-        <text x="153" y="473" class="mono" fill="var(--red)" font-size="6">VCC</text>
-        <text x="153" y="482" class="mono" fill="#eab308" font-size="6">DATA</text>
-        <text x="153" y="491" class="mono" fill="var(--gray)" font-size="6">GND</text>
+        <line x1="130" y1="663" x2="146" y2="658" stroke="var(--red)" stroke-width="1.5" stroke-linecap="round"/>
+        <line x1="130" y1="667" x2="146" y2="667" stroke="#eab308" stroke-width="1.5" stroke-linecap="round"/>
+        <line x1="130" y1="671" x2="146" y2="676" stroke="#555" stroke-width="1.5" stroke-linecap="round"/>
+        <circle cx="146" cy="658" r="2" fill="var(--red)"/>
+        <circle cx="146" cy="667" r="2" fill="#eab308"/>
+        <circle cx="146" cy="676" r="2" fill="#555"/>
+        <text x="153" y="661" class="mono" fill="var(--red)" font-size="6">VCC</text>
+        <text x="153" y="670" class="mono" fill="#eab308" font-size="6">DATA</text>
+        <text x="153" y="679" class="mono" fill="var(--gray)" font-size="6">GND</text>
 
-        <text x="200" y="486" class="mono" fill="var(--cyan)" font-size="13" font-weight="700">DS18B20 #1</text>
-        <text x="200" y="502" class="mono" fill="var(--svg-text-dim)" font-size="8">Water temp &middot; waterproof probe</text>
-        <text x="200" y="516" class="mono" fill="var(--svg-text-dim)" font-size="7">D2 + 4.7k&#8486; pull-up to 5V</text>
-        <text x="200" y="530" class="mono" fill="var(--cyan)" font-size="8" font-weight="600">probe into water reservoir</text>
-        <!-- Resistor note -->
-        <rect x="200" y="536" width="76" height="14" rx="3" fill="var(--cyan-dim)" stroke="rgba(34,211,238,0.25)" stroke-width="0.8"/>
-        <text x="238" y="546" text-anchor="middle" class="mono" fill="var(--cyan)" font-size="7" font-weight="600">R: 4.7k&#8486;</text>
+        <text x="200" y="674" class="mono" fill="var(--cyan)" font-size="13" font-weight="700">DS18B20 #1</text>
+        <text x="200" y="690" class="mono" fill="var(--svg-text-dim)" font-size="8">Water temp &middot; D2 + 4.7k&#8486;</text>
+        <rect x="200" y="698" width="76" height="14" rx="3" fill="var(--cyan-dim)" stroke="rgba(34,211,238,0.25)" stroke-width="0.8"/>
+        <text x="238" y="708" text-anchor="middle" class="mono" fill="var(--cyan)" font-size="7" font-weight="600">R: 4.7k&#8486;</text>
 
-        <path d="M 60,176 C 20,176 10,430 60,460" fill="none" stroke="var(--cyan)" stroke-width="2.5" stroke-linecap="round"/>
+        <path d="M 60,176 C 20,176 10,620 60,650" fill="none" stroke="var(--cyan)" stroke-width="2.5" stroke-linecap="round"/>
         <circle cx="60" cy="176" r="4" fill="var(--cyan)"/>
-        <circle cx="60" cy="460" r="4" fill="var(--cyan)"/>
+        <circle cx="60" cy="650" r="4" fill="var(--cyan)"/>
 
         <!-- DS18B20 #2 Air -->
-        <rect x="350" y="460" width="260" height="100" rx="12" fill="var(--svg-board-fill)" stroke="var(--orange)" stroke-width="1.5"/>
+        <rect x="350" y="650" width="260" height="90" rx="12" fill="var(--svg-board-fill)" stroke="var(--orange)" stroke-width="1.5"/>
         <!-- Waterproof probe shape -->
-        <rect x="362" y="472" width="60" height="14" rx="7" fill="#8899aa" stroke="#aabbcc" stroke-width="1"/>
-        <rect x="362" y="474" width="60" height="10" rx="5" fill="#99aabb" opacity="0.25"/>
-        <ellipse cx="364" cy="479" rx="3" ry="6" fill="#aabbcc" opacity="0.3"/>
+        <rect x="362" y="660" width="60" height="14" rx="7" fill="#8899aa" stroke="#aabbcc" stroke-width="1"/>
+        <rect x="362" y="662" width="60" height="10" rx="5" fill="#99aabb" opacity="0.25"/>
+        <ellipse cx="364" cy="667" rx="3" ry="6" fill="#aabbcc" opacity="0.3"/>
         <!-- Cable from probe -->
-        <path d="M 422,479 C 435,479 440,479 450,479" fill="none" stroke="#555" stroke-width="5" stroke-linecap="round"/>
+        <path d="M 422,667 C 435,667 440,667 450,667" fill="none" stroke="#555" stroke-width="5" stroke-linecap="round"/>
         <!-- 3 wire split -->
-        <line x1="450" y1="475" x2="466" y2="470" stroke="var(--red)" stroke-width="1.5" stroke-linecap="round"/>
-        <line x1="450" y1="479" x2="466" y2="479" stroke="#eab308" stroke-width="1.5" stroke-linecap="round"/>
-        <line x1="450" y1="483" x2="466" y2="488" stroke="#555" stroke-width="1.5" stroke-linecap="round"/>
-        <circle cx="466" cy="470" r="2" fill="var(--red)"/>
-        <circle cx="466" cy="479" r="2" fill="#eab308"/>
-        <circle cx="466" cy="488" r="2" fill="#555"/>
-        <text x="473" y="473" class="mono" fill="var(--red)" font-size="6">VCC</text>
-        <text x="473" y="482" class="mono" fill="#eab308" font-size="6">DATA</text>
-        <text x="473" y="491" class="mono" fill="var(--gray)" font-size="6">GND</text>
+        <line x1="450" y1="663" x2="466" y2="658" stroke="var(--red)" stroke-width="1.5" stroke-linecap="round"/>
+        <line x1="450" y1="667" x2="466" y2="667" stroke="#eab308" stroke-width="1.5" stroke-linecap="round"/>
+        <line x1="450" y1="671" x2="466" y2="676" stroke="#555" stroke-width="1.5" stroke-linecap="round"/>
+        <circle cx="466" cy="658" r="2" fill="var(--red)"/>
+        <circle cx="466" cy="667" r="2" fill="#eab308"/>
+        <circle cx="466" cy="676" r="2" fill="#555"/>
+        <text x="473" y="661" class="mono" fill="var(--red)" font-size="6">VCC</text>
+        <text x="473" y="670" class="mono" fill="#eab308" font-size="6">DATA</text>
+        <text x="473" y="679" class="mono" fill="var(--gray)" font-size="6">GND</text>
 
-        <text x="520" y="486" class="mono" fill="var(--orange)" font-size="13" font-weight="700">DS18B20 #2</text>
-        <text x="520" y="502" class="mono" fill="var(--svg-text-dim)" font-size="8">Air temp &middot; waterproof probe</text>
-        <text x="520" y="516" class="mono" fill="var(--svg-text-dim)" font-size="7">D4 + 4.7k&#8486; pull-up to 5V</text>
-        <text x="520" y="530" class="mono" fill="var(--orange)" font-size="8" font-weight="600">mount outside in shaded air</text>
-        <!-- Resistor note -->
-        <rect x="520" y="536" width="76" height="14" rx="3" fill="var(--orange-dim)" stroke="rgba(245,158,11,0.25)" stroke-width="0.8"/>
-        <text x="558" y="546" text-anchor="middle" class="mono" fill="var(--orange)" font-size="7" font-weight="600">R: 4.7k&#8486;</text>
+        <text x="520" y="674" class="mono" fill="var(--orange)" font-size="13" font-weight="700">DS18B20 #2</text>
+        <text x="520" y="690" class="mono" fill="var(--svg-text-dim)" font-size="8">Air temp &middot; D4 + 4.7k&#8486;</text>
+        <rect x="520" y="698" width="76" height="14" rx="3" fill="var(--orange-dim)" stroke="rgba(245,158,11,0.25)" stroke-width="0.8"/>
+        <text x="558" y="708" text-anchor="middle" class="mono" fill="var(--orange)" font-size="7" font-weight="600">R: 4.7k&#8486;</text>
 
-        <path d="M 60,189 C 20,189 0,450 380,460" fill="none" stroke="var(--orange)" stroke-width="2.5" stroke-linecap="round"/>
+        <path d="M 60,189 C 20,189 0,640 380,650" fill="none" stroke="var(--orange)" stroke-width="2.5" stroke-linecap="round"/>
         <circle cx="60" cy="189" r="4" fill="var(--orange)"/>
-        <circle cx="380" cy="460" r="4" fill="var(--orange)"/>
+        <circle cx="380" cy="650" r="4" fill="var(--orange)"/>
 
         <rect x="395" y="260" width="180" height="24" rx="6" fill="var(--brown-dim)" stroke="rgba(180,83,9,0.3)" stroke-width="1"/>
         <text x="485" y="276" text-anchor="middle" class="mono" fill="var(--brown)" font-size="8" font-weight="600">ONLY brown wire through relay</text>
       </svg>
 
       <div class="legend">
-        <div class="legend-item"><div class="lw green"></div>Relay signal (D7)</div>
+        <div class="legend-item"><div class="lw green"></div>Relay (D7) / SD Card SPI (D10&ndash;13)</div>
+        <div class="legend-item"><div class="lw cyan"></div>DS18B20 water (D2) / LCD I2C (A4&ndash;A5)</div>
+        <div class="legend-item"><div class="lw orange"></div>DS18B20 air (D4)</div>
+        <div class="legend-item"><div class="lw purple"></div>Button (D5)</div>
         <div class="legend-item"><div class="lw red"></div>5V power</div>
         <div class="legend-item"><div class="lw gray"></div>Ground</div>
-        <div class="legend-item"><div class="lw purple"></div>Button (D5)</div>
-        <div class="legend-item"><div class="lw cyan"></div>DS18B20 water (D2)</div>
-        <div class="legend-item"><div class="lw orange"></div>DS18B20 air (D4)</div>
         <div class="legend-item"><div class="lw brown"></div>Mains Live (switched)</div>
         <div class="legend-item"><div class="lw blue"></div>Mains Neutral</div>
         <div class="legend-item"><div class="lw yg"></div>Mains Earth</div>
@@ -450,10 +620,10 @@
     </div>
   </section>
 
-  <!-- ════════ 03 BREADBOARD ════════ -->
+  <!-- ════════ 04 BREADBOARD ════════ -->
   <section class="sec">
     <div class="sec-head">
-      <div class="sec-num">03</div>
+      <div class="sec-num">04</div>
       <span class="sec-title">Breadboard &mdash; Button &amp; Sensors</span>
       <div class="sec-line"></div>
     </div>
@@ -691,10 +861,10 @@
     </div>
   </section>
 
-  <!-- ════════ 04 SENSOR CLOSE-UP ════════ -->
+  <!-- ════════ 05 SENSOR CLOSE-UP ════════ -->
   <section class="sec">
     <div class="sec-head">
-      <div class="sec-num">04</div>
+      <div class="sec-num">05</div>
       <span class="sec-title">DS18B20 Waterproof Probe &mdash; Wiring Detail</span>
       <div class="sec-line"></div>
     </div>
@@ -886,10 +1056,10 @@
     </div>
   </section>
 
-  <!-- ════════ 05 STEP BY STEP ════════ -->
+  <!-- ════════ 06 STEP BY STEP ════════ -->
   <section class="sec">
     <div class="sec-head">
-      <div class="sec-num">05</div>
+      <div class="sec-num">06</div>
       <span class="sec-title">Step-by-Step</span>
       <div class="sec-line"></div>
     </div>
@@ -912,17 +1082,25 @@
       </div>
       <div class="step">
         <div class="step-n">Step 5</div>
-        <div class="step-t">Cut the <strong>brown wire</strong> from the mains cable. One end to relay <code>COM</code>, other to relay <code>NO</code>. Blue + yellow/green go straight through Wago.</div>
+        <div class="step-t">Wire SD card module (SPI):<br><code>D10 &rarr; CS</code> &nbsp; <code>D11 &rarr; MOSI</code> &nbsp; <code>D12 &rarr; MISO</code> &nbsp; <code>D13 &rarr; SCK</code><br><code>5V &rarr; VCC</code> &nbsp; <code>GND &rarr; GND</code></div>
       </div>
       <div class="step">
         <div class="step-n">Step 6</div>
-        <div class="step-t">Install libraries, compile, upload:<br><code>arduino-cli lib install "OneWire" "DallasTemperature"</code><br>Connect USB, upload sketch. Press button to start auto mode.</div>
+        <div class="step-t">Wire LCD 2004 I2C:<br><code>A4 &rarr; SDA</code> &nbsp; <code>A5 &rarr; SCL</code><br><code>5V &rarr; VCC</code> &nbsp; <code>GND &rarr; GND</code><br>Default I2C address 0x27.</div>
+      </div>
+      <div class="step">
+        <div class="step-n">Step 7</div>
+        <div class="step-t">Cut the <strong>brown wire</strong> from the mains cable. One end to relay <code>COM</code>, other to relay <code>NO</code>. Blue + yellow/green go straight through Wago.</div>
+      </div>
+      <div class="step">
+        <div class="step-n">Step 8</div>
+        <div class="step-t">Install libraries, compile, upload:<br><code>arduino-cli lib install "OneWire" "DallasTemperature" "SD" "LiquidCrystal I2C"</code><br>Connect USB, upload sketch. Press button to start auto mode.</div>
       </div>
     </div>
   </section>
 
   <footer>
-    <p>FLANKTUS &middot; ROOFTOP HYDROPONIC TOWER &middot; v5.0</p>
+    <p>FLANKTUS &middot; ROOFTOP HYDROPONIC TOWER &middot; v6.0</p>
   </footer>
 
 </div>
